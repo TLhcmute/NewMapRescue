@@ -1,11 +1,11 @@
-
 import { useState, useEffect, useRef } from 'react';
 import Header from '../components/Header';
 import { MapContainer, TileLayer, Marker, Popup, useMap, Polyline } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { Phone, Navigation, ArrowRight, ArrowLeft, MapPin, Search, Check } from 'lucide-react';
+import { Phone, Navigation, ArrowRight, ArrowLeft, MapPin, Search, Check, MessageCircle } from 'lucide-react';
 import { toast } from 'sonner';
+import AcceptedRescues from '../components/AcceptedRescues';
 
 // Fix for leaflet icons
 import icon from 'leaflet/dist/images/marker-icon.png';
@@ -54,6 +54,8 @@ interface Person {
   status: 'Waiting' | 'In Progress' | 'Rescued' | 'Accepted';
   priority: 'high' | 'low';
   image?: string;
+  message?: string;
+  address?: string;
 }
 
 // Mock data for people needing rescue
@@ -65,7 +67,9 @@ const mockPeople: Person[] = [
     location: [10.7769, 106.7009], // Ho Chi Minh City
     status: 'Waiting',
     priority: 'high',
-    image: 'https://randomuser.me/api/portraits/men/1.jpg'
+    image: 'https://randomuser.me/api/portraits/men/1.jpg',
+    message: 'Nhà tôi đang bị ngập nước, cần hỗ trợ khẩn cấp',
+    address: '123 Nguyễn Văn Cừ, Quận 5, TP.HCM'
   },
   {
     id: '2',
@@ -74,7 +78,9 @@ const mockPeople: Person[] = [
     location: [10.7859, 106.6960], // Near Ho Chi Minh City
     status: 'Waiting',
     priority: 'high',
-    image: 'https://randomuser.me/api/portraits/women/2.jpg'
+    image: 'https://randomuser.me/api/portraits/women/2.jpg',
+    message: 'Cần giúp di chuyển người già và trẻ em',
+    address: '45 Lê Lợi, Quận 1, TP.HCM'
   },
   {
     id: '3',
@@ -83,7 +89,9 @@ const mockPeople: Person[] = [
     location: [10.7740, 106.7050], // Near Ho Chi Minh City
     status: 'Waiting',
     priority: 'low',
-    image: 'https://randomuser.me/api/portraits/men/3.jpg'
+    image: 'https://randomuser.me/api/portraits/men/3.jpg',
+    message: 'Cần hỗ trợ lương thực và nước uống',
+    address: '78 Võ Văn Tần, Quận 3, TP.HCM'
   },
   {
     id: '4',
@@ -92,7 +100,9 @@ const mockPeople: Person[] = [
     location: [10.7800, 106.6950], // Near Ho Chi Minh City
     status: 'In Progress',
     priority: 'low',
-    image: 'https://randomuser.me/api/portraits/women/4.jpg'
+    image: 'https://randomuser.me/api/portraits/women/4.jpg',
+    message: 'Cần hỗ trợ y tế, có người bị thương',
+    address: '120 Hai Bà Trưng, Quận 1, TP.HCM'
   },
   {
     id: '5',
@@ -101,7 +111,9 @@ const mockPeople: Person[] = [
     location: [10.7730, 106.7100], // Near Ho Chi Minh City
     status: 'Waiting',
     priority: 'high',
-    image: 'https://randomuser.me/api/portraits/men/5.jpg'
+    image: 'https://randomuser.me/api/portraits/men/5.jpg',
+    message: 'Nhà có trẻ nhỏ, nước đang dâng cao',
+    address: '55 Điện Biên Phủ, Quận Bình Thạnh, TP.HCM'
   }
 ];
 
@@ -121,6 +133,8 @@ const Map = () => {
   const [showSidebar, setShowSidebar] = useState(true);
   const [routePoints, setRoutePoints] = useState<[number, number][]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [acceptedRescues, setAcceptedRescues] = useState<Person[]>([]);
+  const [showAcceptedRescues, setShowAcceptedRescues] = useState(false);
   const mapRef = useRef<L.Map | null>(null);
 
   // Get current location on component mount
@@ -170,22 +184,39 @@ const Map = () => {
 
   // Handler for accepting a rescue request
   const handleAcceptRescue = (personId: string) => {
-    setPeople(prevPeople => 
-      prevPeople.map(person => 
+    setPeople(prevPeople => {
+      const updatedPeople = prevPeople.map(person => 
         person.id === personId 
           ? { ...person, status: 'Accepted' } 
           : person
-      )
-    );
-    toast.success("You have accepted this rescue request!");
+      );
+      
+      // Find the accepted person and add to acceptedRescues
+      const acceptedPerson = updatedPeople.find(p => p.id === personId);
+      if (acceptedPerson) {
+        setAcceptedRescues(prev => [...prev, acceptedPerson]);
+      }
+      
+      return updatedPeople;
+    });
+    
+    toast.success("Bạn đã nhận yêu cầu cứu hộ này!");
   };
 
   // Handler for completing a rescue
   const handleCompleteRescue = (personId: string) => {
+    // Remove from main people list
     setPeople(prevPeople => 
       prevPeople.filter(person => person.id !== personId)
     );
-    toast.success("Rescue completed successfully!");
+    
+    // Also remove from accepted rescues list
+    setAcceptedRescues(prev => 
+      prev.filter(person => person.id !== personId)
+    );
+    
+    toast.success("Cứu hộ đã hoàn thành thành công!");
+    
     // Close popup if needed
     if (mapRef.current) {
       mapRef.current.closePopup();
@@ -214,7 +245,7 @@ const Map = () => {
               center={currentLocation} 
               zoom={13} 
               className="h-[calc(100vh-4rem)]"
-              whenReady={(map) => { mapRef.current = map.target; }}
+              whenCreated={(map) => { mapRef.current = map; }}
             >
               <TileLayer
                 attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
@@ -246,7 +277,7 @@ const Map = () => {
                   }}
                 >
                   <Popup>
-                    <div className="p-2 min-w-[200px]">
+                    <div className="p-2 min-w-[250px]">
                       {person.image && (
                         <div className="mb-2 overflow-hidden rounded-md">
                           <img 
@@ -269,6 +300,24 @@ const Map = () => {
                           <Phone size={14} />
                         </button>
                       </div>
+                      
+                      {person.address && (
+                        <div className="flex items-start text-sm mb-1">
+                          <span className="text-gray-500 mr-1">Địa chỉ:</span>
+                          <span className="flex-1">{person.address}</span>
+                        </div>
+                      )}
+                      
+                      {person.message && (
+                        <div className="flex items-start text-sm mb-1">
+                          <span className="text-gray-500 mr-1 flex items-center">
+                            <MessageCircle size={12} className="mr-1" />
+                          </span>
+                          <span className="flex-1 italic bg-gray-50 p-1 rounded text-gray-600">
+                            "{person.message}"
+                          </span>
+                        </div>
+                      )}
                       
                       <div className="flex items-center text-sm mb-1">
                         <span className="text-gray-500 mr-1">Status:</span>
@@ -343,10 +392,18 @@ const Map = () => {
             
             {/* Sidebar toggle button */}
             <button 
-              className="absolute bottom-6 right-4 z-[999] p-3 rounded-full bg-white shadow-md hover:shadow-lg transition-all"
+              className="absolute bottom-24 right-4 z-[999] p-3 rounded-full bg-white shadow-md hover:shadow-lg transition-all"
               onClick={() => setShowSidebar(!showSidebar)}
             >
               {showSidebar ? <ArrowRight size={20} /> : <ArrowLeft size={20} />}
+            </button>
+
+            {/* Accepted rescues toggle button */}
+            <button 
+              className="absolute bottom-6 right-4 z-[999] p-3 rounded-full bg-green-500 text-white shadow-md hover:shadow-lg transition-all"
+              onClick={() => setShowAcceptedRescues(!showAcceptedRescues)}
+            >
+              <Check size={20} />
             </button>
           </div>
           
@@ -408,6 +465,12 @@ const Map = () => {
                                 <span className="mr-2">{person.phone}</span>
                                 <span className="ml-auto">{calculateDistance(currentLocation, person.location)} km</span>
                               </div>
+                              
+                              {person.address && (
+                                <div className="text-xs text-gray-500 truncate mt-1">
+                                  {person.address}
+                                </div>
+                              )}
                             </div>
                           </div>
                         </div>
@@ -424,6 +487,17 @@ const Map = () => {
             )}
           </div>
         </div>
+
+        {/* Modal for accepted rescues */}
+        {showAcceptedRescues && (
+          <AcceptedRescues 
+            acceptedRescues={acceptedRescues} 
+            onClose={() => setShowAcceptedRescues(false)}
+            onComplete={handleCompleteRescue}
+            onSelect={handlePersonSelect}
+            calculateDistance={(location) => calculateDistance(currentLocation, location)}
+          />
+        )}
       </main>
     </div>
   );
