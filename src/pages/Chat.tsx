@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from 'react';
 import Header from '../components/Header';
 import { Send, MapPin, MessageSquare, Bot } from 'lucide-react';
@@ -12,6 +11,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import { Button } from "@/components/ui/button";
 
 interface Message {
   id: string;
@@ -19,6 +19,7 @@ interface Message {
   content: string;
   timestamp: Date;
   isCurrentUser: boolean;
+  isLocation?: boolean;
 }
 
 interface TeamMember {
@@ -236,31 +237,30 @@ const Chat = () => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
-          const locationMessage = `My current location: ${position.coords.latitude}, ${position.coords.longitude}`;
-          
-          const message: Message = {
+          const locationMessage: Message = {
             id: Date.now().toString(),
             sender: user.username,
-            content: locationMessage,
+            content: `Vị trí hiện tại của tôi: ${position.coords.latitude.toFixed(6)}, ${position.coords.longitude.toFixed(6)}`,
             timestamp: new Date(),
-            isCurrentUser: true
+            isCurrentUser: true,
+            isLocation: true
           };
           
           if (activeChatType === 'team') {
-            setTeamMessages([...teamMessages, message]);
+            setTeamMessages([...teamMessages, locationMessage]);
           } else {
-            setAIMessages([...aiMessages, message]);
+            setAIMessages([...aiMessages, locationMessage]);
           }
           
-          toast.success('Location shared successfully');
+          toast.success('Đã chia sẻ vị trí thành công');
         },
         (error) => {
           console.error("Error getting location:", error);
-          toast.error("Could not share your location. Please check your permissions.");
+          toast.error("Không thể chia sẻ vị trí. Vui lòng kiểm tra quyền truy cập.");
         }
       );
     } else {
-      toast.error("Geolocation is not supported by this browser.");
+      toast.error("Trình duyệt của bạn không hỗ trợ định vị vị trí.");
     }
   };
 
@@ -282,6 +282,68 @@ const Chat = () => {
     if (hoursAgo < 24) return `${hoursAgo} hours ago`;
     
     return date.toLocaleDateString();
+  };
+
+  const renderMessage = (message: Message) => {
+    return (
+      <div 
+        key={message.id} 
+        className={`flex ${message.isCurrentUser ? 'justify-end' : 'justify-start'}`}
+      >
+        {!message.isCurrentUser && (
+          <div className="w-8 h-8 rounded-full mr-2 mt-1 overflow-hidden">
+            {activeChatType === 'team' ? (
+              <img 
+                src={teamMembers.find(m => m.name === message.sender)?.avatar || 'https://via.placeholder.com/40'} 
+                alt={message.sender}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <div className="w-full h-full bg-rescue-tertiary text-white flex items-center justify-center">
+                <Bot size={16} />
+              </div>
+            )}
+          </div>
+        )}
+        
+        <div className="max-w-[80%] flex flex-col">
+          {!message.isCurrentUser && (
+            <span className="text-xs text-gray-500 mb-1 ml-1">{message.sender}</span>
+          )}
+          
+          <div className={`px-4 py-2 rounded-lg ${message.isCurrentUser ? 'bg-rescue-tertiary text-white' : 'bg-white border'}`}>
+            {message.isLocation ? (
+              <div>
+                <div className="flex items-center gap-1 mb-1">
+                  <MapPin size={16} />
+                  <span className="font-medium">Vị trí đã chia sẻ</span>
+                </div>
+                <p>{message.content}</p>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="mt-2 text-xs" 
+                  onClick={() => {
+                    const coords = message.content.split(': ')[1];
+                    if (coords) {
+                      window.open(`https://www.google.com/maps/search/?api=1&query=${coords}`, '_blank');
+                    }
+                  }}
+                >
+                  Xem trên bản đồ
+                </Button>
+              </div>
+            ) : (
+              <p>{message.content}</p>
+            )}
+          </div>
+          
+          <span className={`text-xs text-gray-500 mt-1 ${message.isCurrentUser ? 'text-right' : 'text-left'}`}>
+            {formatTime(message.timestamp)}
+          </span>
+        </div>
+      </div>
+    );
   };
 
   return (
@@ -401,65 +463,41 @@ const Chat = () => {
             
             {/* Messages */}
             <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">
-              {teamMessages.map((message) => (
-                <div 
-                  key={message.id} 
-                  className={`flex ${message.isCurrentUser ? 'justify-end' : 'justify-start'}`}
-                >
-                  {!message.isCurrentUser && (
-                    <img 
-                      src={teamMembers.find(m => m.name === message.sender)?.avatar || 'https://via.placeholder.com/40'} 
-                      alt={message.sender}
-                      className="w-8 h-8 rounded-full object-cover mr-2 mt-1"
-                    />
-                  )}
-                  
-                  <div className="max-w-[80%] flex flex-col">
-                    {!message.isCurrentUser && (
-                      <span className="text-xs text-gray-500 mb-1 ml-1">{message.sender}</span>
-                    )}
-                    
-                    <div className={`px-4 py-2 rounded-lg ${message.isCurrentUser ? 'bg-rescue-tertiary text-white' : 'bg-white border'}`}>
-                      <p>{message.content}</p>
-                    </div>
-                    
-                    <span className={`text-xs text-gray-500 mt-1 ${message.isCurrentUser ? 'text-right' : 'text-left'}`}>
-                      {formatTime(message.timestamp)}
-                    </span>
-                  </div>
-                </div>
-              ))}
+              {teamMessages.map((message) => renderMessage(message))}
               <div ref={teamMessagesEndRef} />
             </div>
             
             {/* Message input */}
             <div className="p-4 border-t bg-white">
               <form onSubmit={handleSendTeamMessage} className="flex items-center space-x-2">
-                <button 
+                <Button 
                   type="button"
-                  className="p-2 text-gray-500 hover:text-rescue-tertiary transition-colors"
+                  variant="outline"
+                  size="icon"
+                  className="rounded-full flex-shrink-0 text-gray-500 hover:text-rescue-tertiary hover:bg-gray-100"
                   onClick={handleShareLocation}
-                  aria-label="Share location"
+                  aria-label="Chia sẻ vị trí"
                 >
                   <MapPin size={20} />
-                </button>
+                </Button>
                 
                 <input
                   type="text"
-                  placeholder="Type a message..."
+                  placeholder="Nhập tin nhắn..."
                   className="flex-1 px-4 py-2 border rounded-full focus:outline-none focus:ring-2 focus:ring-rescue-tertiary/50"
                   value={teamNewMessage}
                   onChange={(e) => setTeamNewMessage(e.target.value)}
                 />
                 
-                <button 
+                <Button
                   type="submit"
-                  className="p-2 text-white bg-rescue-tertiary rounded-full hover:bg-opacity-90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  size="icon"
+                  className="rounded-full bg-rescue-tertiary hover:bg-rescue-tertiary/90"
                   disabled={teamNewMessage.trim() === ''}
-                  aria-label="Send message"
+                  aria-label="Gửi tin nhắn"
                 >
                   <Send size={20} />
-                </button>
+                </Button>
               </form>
             </div>
           </div>
@@ -469,63 +507,41 @@ const Chat = () => {
         <div className={`flex-1 flex flex-col h-[calc(100vh-4rem-3.5rem)] ${activeChatType === 'ai' ? 'flex' : 'hidden'}`}>
           {/* Messages */}
           <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">
-            {aiMessages.map((message) => (
-              <div 
-                key={message.id} 
-                className={`flex ${message.isCurrentUser ? 'justify-end' : 'justify-start'}`}
-              >
-                {!message.isCurrentUser && (
-                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-rescue-tertiary text-white flex items-center justify-center mr-2 mt-1">
-                    <Bot size={16} />
-                  </div>
-                )}
-                
-                <div className="max-w-[80%] flex flex-col">
-                  {!message.isCurrentUser && (
-                    <span className="text-xs text-gray-500 mb-1 ml-1">{message.sender}</span>
-                  )}
-                  
-                  <div className={`px-4 py-2 rounded-lg ${message.isCurrentUser ? 'bg-rescue-tertiary text-white' : 'bg-white border'}`}>
-                    <p>{message.content}</p>
-                  </div>
-                  
-                  <span className={`text-xs text-gray-500 mt-1 ${message.isCurrentUser ? 'text-right' : 'text-left'}`}>
-                    {formatTime(message.timestamp)}
-                  </span>
-                </div>
-              </div>
-            ))}
+            {aiMessages.map((message) => renderMessage(message))}
             <div ref={aiMessagesEndRef} />
           </div>
           
           {/* Message input */}
           <div className="p-4 border-t bg-white">
             <form onSubmit={handleSendAIMessage} className="flex items-center space-x-2">
-              <button 
+              <Button 
                 type="button"
-                className="p-2 text-gray-500 hover:text-rescue-tertiary transition-colors"
+                variant="outline"
+                size="icon"
+                className="rounded-full flex-shrink-0 text-gray-500 hover:text-rescue-tertiary hover:bg-gray-100"
                 onClick={handleShareLocation}
-                aria-label="Share location"
+                aria-label="Chia sẻ vị trí"
               >
                 <MapPin size={20} />
-              </button>
+              </Button>
               
               <input
                 type="text"
-                placeholder="Ask AI for assistance..."
+                placeholder="Hỏi AI trợ giúp..."
                 className="flex-1 px-4 py-2 border rounded-full focus:outline-none focus:ring-2 focus:ring-rescue-tertiary/50"
                 value={aiNewMessage}
                 onChange={(e) => setAINewMessage(e.target.value)}
               />
               
-              <button 
+              <Button
                 type="submit"
-                className="p-2 text-white bg-rescue-tertiary rounded-full hover:bg-opacity-90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                size="icon"
+                className="rounded-full bg-rescue-tertiary hover:bg-rescue-tertiary/90"
                 disabled={aiNewMessage.trim() === ''}
-                aria-label="Send message"
+                aria-label="Gửi tin nhắn"
               >
                 <Send size={20} />
-              </button>
+              </Button>
             </form>
           </div>
         </div>
