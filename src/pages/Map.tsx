@@ -4,7 +4,7 @@ import Header from '../components/Header';
 import { MapContainer, TileLayer, Marker, Popup, useMap, Polyline } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { Phone, Navigation, ArrowRight, ArrowLeft, MapPin, Search } from 'lucide-react';
+import { Phone, Navigation, ArrowRight, ArrowLeft, MapPin, Search, Check } from 'lucide-react';
 import { toast } from 'sonner';
 
 // Fix for leaflet icons
@@ -51,7 +51,7 @@ interface Person {
   name: string;
   phone: string;
   location: [number, number];
-  status: 'Waiting' | 'In Progress' | 'Rescued';
+  status: 'Waiting' | 'In Progress' | 'Rescued' | 'Accepted';
   priority: 'high' | 'low';
   image?: string;
 }
@@ -168,6 +168,30 @@ const Map = () => {
     toast.success("Directions calculated. Follow the blue line on the map.");
   };
 
+  // Handler for accepting a rescue request
+  const handleAcceptRescue = (personId: string) => {
+    setPeople(prevPeople => 
+      prevPeople.map(person => 
+        person.id === personId 
+          ? { ...person, status: 'Accepted' } 
+          : person
+      )
+    );
+    toast.success("You have accepted this rescue request!");
+  };
+
+  // Handler for completing a rescue
+  const handleCompleteRescue = (personId: string) => {
+    setPeople(prevPeople => 
+      prevPeople.filter(person => person.id !== personId)
+    );
+    toast.success("Rescue completed successfully!");
+    // Close popup if needed
+    if (mapRef.current) {
+      mapRef.current.closePopup();
+    }
+  };
+
   const filteredPeople = people.filter(person => 
     person.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     person.phone.includes(searchQuery)
@@ -190,7 +214,7 @@ const Map = () => {
               center={currentLocation} 
               zoom={13} 
               className="h-[calc(100vh-4rem)]"
-              whenCreated={(map) => { mapRef.current = map; }}
+              whenReady={(map) => { mapRef.current = map.target; }}
             >
               <TileLayer
                 attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
@@ -251,7 +275,7 @@ const Map = () => {
                         <span className={`py-0.5 px-2 rounded-full text-xs ${
                           person.status === 'Waiting' 
                             ? 'bg-rescue-warning/10 text-rescue-warning' 
-                            : person.status === 'In Progress' 
+                            : person.status === 'In Progress' || person.status === 'Accepted'
                               ? 'bg-blue-100 text-blue-600' 
                               : 'bg-green-100 text-green-600'
                         }`}>
@@ -275,13 +299,31 @@ const Map = () => {
                         <span>{calculateDistance(currentLocation, person.location)} km</span>
                       </div>
                       
-                      <button 
-                        className="w-full py-2 px-3 bg-rescue-secondary text-white rounded-md flex items-center justify-center space-x-1 text-sm hover:bg-opacity-90 transition-colors"
-                        onClick={() => getDirections(person.location)}
-                      >
-                        <Navigation size={14} className="mr-1" />
-                        <span>Get Directions</span>
-                      </button>
+                      {person.status === 'Waiting' ? (
+                        <button 
+                          className="w-full py-2 px-3 bg-green-500 text-white rounded-md flex items-center justify-center space-x-1 text-sm hover:bg-green-600 transition-colors"
+                          onClick={() => handleAcceptRescue(person.id)}
+                        >
+                          <Navigation size={14} className="mr-1" />
+                          <span>Nhận</span>
+                        </button>
+                      ) : person.status === 'Accepted' ? (
+                        <button 
+                          className="w-full py-2 px-3 bg-blue-500 text-white rounded-md flex items-center justify-center space-x-1 text-sm hover:bg-blue-600 transition-colors"
+                          onClick={() => handleCompleteRescue(person.id)}
+                        >
+                          <Check size={14} className="mr-1" />
+                          <span>Hoàn thành</span>
+                        </button>
+                      ) : (
+                        <button 
+                          className="w-full py-2 px-3 bg-rescue-secondary text-white rounded-md flex items-center justify-center space-x-1 text-sm hover:bg-opacity-90 transition-colors"
+                          onClick={() => getDirections(person.location)}
+                        >
+                          <Navigation size={14} className="mr-1" />
+                          <span>Get Directions</span>
+                        </button>
+                      )}
                     </div>
                   </Popup>
                 </Marker>
@@ -354,7 +396,7 @@ const Map = () => {
                                 <span className={`ml-auto text-xs py-0.5 px-2 rounded-full ${
                                   person.status === 'Waiting' 
                                     ? 'bg-rescue-warning/10 text-rescue-warning' 
-                                    : person.status === 'In Progress' 
+                                    : person.status === 'In Progress' || person.status === 'Accepted'
                                       ? 'bg-blue-100 text-blue-600' 
                                       : 'bg-green-100 text-green-600'
                                 }`}>
