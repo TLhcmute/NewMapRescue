@@ -1,9 +1,10 @@
+
 import { useState, useEffect, useRef } from 'react';
 import Header from '../components/Header';
 import { MapContainer, TileLayer, Marker, Popup, useMap, Polyline } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { Phone, Navigation, ArrowRight, ArrowLeft, MapPin, Search, Check, MessageCircle } from 'lucide-react';
+import { Phone, Navigation, ArrowRight, ArrowLeft, MapPin, Search, Check, MessageCircle, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
 import AcceptedRescues from '../components/AcceptedRescues';
 
@@ -39,6 +40,23 @@ const highPriorityIcon = new L.Icon({
 });
 
 const lowPriorityIcon = new L.Icon({
+  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',
+  shadowUrl: iconShadow,
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+});
+
+// Custom icon for accepted locations
+const acceptedHighPriorityIcon = new L.Icon({
+  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
+  shadowUrl: iconShadow,
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+});
+
+const acceptedLowPriorityIcon = new L.Icon({
   iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',
   shadowUrl: iconShadow,
   iconSize: [25, 41],
@@ -126,6 +144,29 @@ const RecenterAutomatically = ({ position }: { position: [number, number] }) => 
   return null;
 };
 
+// Custom marker with badge component
+const MarkerWithBadge = ({ person, onClick }: { person: Person, onClick: () => void }) => {
+  const icon = person.priority === 'high' 
+    ? (person.status === 'Accepted' ? acceptedHighPriorityIcon : highPriorityIcon)
+    : (person.status === 'Accepted' ? acceptedLowPriorityIcon : lowPriorityIcon);
+  
+  return (
+    <Marker 
+      position={person.location} 
+      icon={icon}
+      eventHandlers={{
+        click: onClick
+      }}
+    >
+      {person.status === 'Accepted' && (
+        <div className="absolute -top-2 -right-2 bg-green-500 rounded-full p-1 shadow-lg">
+          <CheckCircle2 size={16} className="text-white" />
+        </div>
+      )}
+    </Marker>
+  );
+};
+
 const Map = () => {
   const [currentLocation, setCurrentLocation] = useState<[number, number]>([10.7769, 106.7009]); // Default to Ho Chi Minh City
   const [people, setPeople] = useState<Person[]>(mockPeople);
@@ -187,7 +228,7 @@ const Map = () => {
     setPeople(prevPeople => {
       const updatedPeople = prevPeople.map(person => 
         person.id === personId 
-          ? { ...person, status: 'Accepted' } 
+          ? { ...person, status: 'Accepted' as const } 
           : person
       );
       
@@ -245,7 +286,7 @@ const Map = () => {
               center={currentLocation} 
               zoom={13} 
               className="h-[calc(100vh-4rem)]"
-              whenCreated={(map) => { mapRef.current = map; }}
+              whenReady={(map) => { mapRef.current = map.target; }}
             >
               <TileLayer
                 attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
@@ -266,116 +307,142 @@ const Map = () => {
               
               {/* People markers */}
               {people.map((person) => (
-                <Marker 
-                  key={person.id} 
-                  position={person.location} 
-                  icon={person.priority === 'high' ? highPriorityIcon : lowPriorityIcon}
-                  eventHandlers={{
-                    click: () => {
-                      setSelectedPerson(person);
-                    }
-                  }}
-                >
-                  <Popup>
-                    <div className="p-2 min-w-[250px]">
-                      {person.image && (
-                        <div className="mb-2 overflow-hidden rounded-md">
-                          <img 
-                            src={person.image} 
-                            alt={person.name} 
-                            className="w-full h-28 object-cover transition-transform hover:scale-105"
-                          />
+                <div key={person.id}>
+                  <Marker 
+                    position={person.location} 
+                    icon={person.priority === 'high' ? highPriorityIcon : lowPriorityIcon}
+                    eventHandlers={{
+                      click: () => {
+                        setSelectedPerson(person);
+                      }
+                    }}
+                  >
+                    {/* Accepted badge overlay */}
+                    {person.status === 'Accepted' && (
+                      <div className="relative">
+                        <div className="absolute -top-4 -right-4 bg-green-500 text-white rounded-full w-6 h-6 flex items-center justify-center z-50 shadow-lg">
+                          <Check size={14} />
                         </div>
-                      )}
-                      
-                      <h3 className="text-lg font-semibold mb-1">{person.name}</h3>
-                      
-                      <div className="flex items-center text-sm mb-1">
-                        <span className="text-gray-500 mr-1">Phone:</span>
-                        <span>{person.phone}</span>
-                        <button 
-                          className="ml-auto p-1.5 bg-rescue-tertiary/10 text-rescue-tertiary rounded-full hover:bg-rescue-tertiary/20 transition-colors"
-                          onClick={() => callPerson(person.phone)}
-                        >
-                          <Phone size={14} />
-                        </button>
                       </div>
-                      
-                      {person.address && (
-                        <div className="flex items-start text-sm mb-1">
-                          <span className="text-gray-500 mr-1">Địa chỉ:</span>
-                          <span className="flex-1">{person.address}</span>
+                    )}
+                    <Popup>
+                      <div className="p-2 min-w-[250px]">
+                        {person.image && (
+                          <div className="mb-2 overflow-hidden rounded-md">
+                            <img 
+                              src={person.image} 
+                              alt={person.name} 
+                              className="w-full h-28 object-cover transition-transform hover:scale-105"
+                            />
+                          </div>
+                        )}
+                        
+                        <h3 className="text-lg font-semibold mb-1">{person.name}</h3>
+                        
+                        <div className="flex items-center text-sm mb-1">
+                          <span className="text-gray-500 mr-1">Phone:</span>
+                          <span>{person.phone}</span>
+                          <button 
+                            className="ml-auto p-1.5 bg-rescue-tertiary/10 text-rescue-tertiary rounded-full hover:bg-rescue-tertiary/20 transition-colors"
+                            onClick={() => callPerson(person.phone)}
+                          >
+                            <Phone size={14} />
+                          </button>
                         </div>
-                      )}
-                      
-                      {person.message && (
-                        <div className="flex items-start text-sm mb-1">
-                          <span className="text-gray-500 mr-1 flex items-center">
-                            <MessageCircle size={12} className="mr-1" />
+                        
+                        {person.address && (
+                          <div className="flex items-start text-sm mb-1">
+                            <span className="text-gray-500 mr-1">Địa chỉ:</span>
+                            <span className="flex-1">{person.address}</span>
+                          </div>
+                        )}
+                        
+                        {person.message && (
+                          <div className="flex items-start text-sm mb-1">
+                            <span className="text-gray-500 mr-1 flex items-center">
+                              <MessageCircle size={12} className="mr-1" />
+                            </span>
+                            <span className="flex-1 italic bg-gray-50 p-1 rounded text-gray-600">
+                              "{person.message}"
+                            </span>
+                          </div>
+                        )}
+                        
+                        <div className="flex items-center text-sm mb-1">
+                          <span className="text-gray-500 mr-1">Status:</span>
+                          <span className={`py-0.5 px-2 rounded-full text-xs ${
+                            person.status === 'Waiting' 
+                              ? 'bg-rescue-warning/10 text-rescue-warning' 
+                              : person.status === 'In Progress' || person.status === 'Accepted'
+                                ? 'bg-blue-100 text-blue-600' 
+                                : 'bg-green-100 text-green-600'
+                          }`}>
+                            {person.status}
+                            {person.status === 'Accepted' && (
+                              <Check size={12} className="inline ml-1" />
+                            )}
                           </span>
-                          <span className="flex-1 italic bg-gray-50 p-1 rounded text-gray-600">
-                            "{person.message}"
+                        </div>
+                        
+                        <div className="flex items-center text-sm mb-1">
+                          <span className="text-gray-500 mr-1">Priority:</span>
+                          <span className={`py-0.5 px-2 rounded-full text-xs ${
+                            person.priority === 'high' 
+                              ? 'bg-rescue-primary/10 text-rescue-primary' 
+                              : 'bg-rescue-tertiary/10 text-rescue-tertiary'
+                          }`}>
+                            {person.priority === 'high' ? 'High' : 'Low'}
                           </span>
                         </div>
-                      )}
-                      
-                      <div className="flex items-center text-sm mb-1">
-                        <span className="text-gray-500 mr-1">Status:</span>
-                        <span className={`py-0.5 px-2 rounded-full text-xs ${
-                          person.status === 'Waiting' 
-                            ? 'bg-rescue-warning/10 text-rescue-warning' 
-                            : person.status === 'In Progress' || person.status === 'Accepted'
-                              ? 'bg-blue-100 text-blue-600' 
-                              : 'bg-green-100 text-green-600'
-                        }`}>
-                          {person.status}
-                        </span>
+                        
+                        <div className="flex items-center text-sm mb-2">
+                          <span className="text-gray-500 mr-1">Distance:</span>
+                          <span>{calculateDistance(currentLocation, person.location)} km</span>
+                        </div>
+                        
+                        {person.status === 'Waiting' ? (
+                          <button 
+                            className="w-full py-2 px-3 bg-green-500 text-white rounded-md flex items-center justify-center space-x-1 text-sm hover:bg-green-600 transition-colors"
+                            onClick={() => handleAcceptRescue(person.id)}
+                          >
+                            <Navigation size={14} className="mr-1" />
+                            <span>Nhận</span>
+                          </button>
+                        ) : person.status === 'Accepted' ? (
+                          <button 
+                            className="w-full py-2 px-3 bg-blue-500 text-white rounded-md flex items-center justify-center space-x-1 text-sm hover:bg-blue-600 transition-colors"
+                            onClick={() => handleCompleteRescue(person.id)}
+                          >
+                            <Check size={14} className="mr-1" />
+                            <span>Hoàn thành</span>
+                          </button>
+                        ) : (
+                          <button 
+                            className="w-full py-2 px-3 bg-rescue-secondary text-white rounded-md flex items-center justify-center space-x-1 text-sm hover:bg-opacity-90 transition-colors"
+                            onClick={() => getDirections(person.location)}
+                          >
+                            <Navigation size={14} className="mr-1" />
+                            <span>Get Directions</span>
+                          </button>
+                        )}
                       </div>
-                      
-                      <div className="flex items-center text-sm mb-1">
-                        <span className="text-gray-500 mr-1">Priority:</span>
-                        <span className={`py-0.5 px-2 rounded-full text-xs ${
-                          person.priority === 'high' 
-                            ? 'bg-rescue-primary/10 text-rescue-primary' 
-                            : 'bg-rescue-tertiary/10 text-rescue-tertiary'
-                        }`}>
-                          {person.priority === 'high' ? 'High' : 'Low'}
-                        </span>
+                    </Popup>
+                  </Marker>
+                  
+                  {/* Accepted mark overlay */}
+                  {person.status === 'Accepted' && (
+                    <div className="relative" style={{
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      transform: `translate(${person.location[1]}px, ${person.location[0]}px)`
+                    }}>
+                      <div className="absolute -top-2 -right-2 bg-green-500 rounded-full p-1 z-[1000]">
+                        <Check size={16} className="text-white" />
                       </div>
-                      
-                      <div className="flex items-center text-sm mb-2">
-                        <span className="text-gray-500 mr-1">Distance:</span>
-                        <span>{calculateDistance(currentLocation, person.location)} km</span>
-                      </div>
-                      
-                      {person.status === 'Waiting' ? (
-                        <button 
-                          className="w-full py-2 px-3 bg-green-500 text-white rounded-md flex items-center justify-center space-x-1 text-sm hover:bg-green-600 transition-colors"
-                          onClick={() => handleAcceptRescue(person.id)}
-                        >
-                          <Navigation size={14} className="mr-1" />
-                          <span>Nhận</span>
-                        </button>
-                      ) : person.status === 'Accepted' ? (
-                        <button 
-                          className="w-full py-2 px-3 bg-blue-500 text-white rounded-md flex items-center justify-center space-x-1 text-sm hover:bg-blue-600 transition-colors"
-                          onClick={() => handleCompleteRescue(person.id)}
-                        >
-                          <Check size={14} className="mr-1" />
-                          <span>Hoàn thành</span>
-                        </button>
-                      ) : (
-                        <button 
-                          className="w-full py-2 px-3 bg-rescue-secondary text-white rounded-md flex items-center justify-center space-x-1 text-sm hover:bg-opacity-90 transition-colors"
-                          onClick={() => getDirections(person.location)}
-                        >
-                          <Navigation size={14} className="mr-1" />
-                          <span>Get Directions</span>
-                        </button>
-                      )}
                     </div>
-                  </Popup>
-                </Marker>
+                  )}
+                </div>
               ))}
               
               {/* Route line */}
@@ -450,7 +517,7 @@ const Map = () => {
                             <div className="flex-1">
                               <div className="flex items-center mb-1">
                                 <h3 className="font-medium">{person.name}</h3>
-                                <span className={`ml-auto text-xs py-0.5 px-2 rounded-full ${
+                                <span className={`ml-auto text-xs py-0.5 px-2 rounded-full flex items-center ${
                                   person.status === 'Waiting' 
                                     ? 'bg-rescue-warning/10 text-rescue-warning' 
                                     : person.status === 'In Progress' || person.status === 'Accepted'
@@ -458,6 +525,9 @@ const Map = () => {
                                       : 'bg-green-100 text-green-600'
                                 }`}>
                                   {person.status}
+                                  {person.status === 'Accepted' && (
+                                    <CheckCircle2 size={12} className="ml-1" />
+                                  )}
                                 </span>
                               </div>
                               
