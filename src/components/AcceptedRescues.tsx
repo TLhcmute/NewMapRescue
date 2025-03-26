@@ -1,13 +1,14 @@
 
 import React from 'react';
 import { Check, MapPin, X, Navigation } from 'lucide-react';
+import { Progress } from '@/components/ui/progress';
 
 interface Person {
   id: string;
   name: string;
   phone: string;
   location: [number, number];
-  status: 'Waiting' | 'In Progress' | 'Rescued' | 'Accepted';
+  status: 'Waiting' | 'Accepted';
   priority: 'high' | 'low';
   image?: string;
   message?: string;
@@ -29,6 +30,13 @@ const AcceptedRescues = ({
   onSelect,
   calculateDistance
 }: AcceptedRescuesProps) => {
+  const openGoogleMapsDirections = (location: [number, number]) => {
+    const [lat, lng] = location;
+    const destination = `${lat},${lng}`;
+    const url = `https://www.google.com/maps/dir/?api=1&destination=${destination}`;
+    window.open(url, '_blank');
+  };
+
   if (acceptedRescues.length === 0) {
     return (
       <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[1000]">
@@ -107,25 +115,35 @@ const AcceptedRescues = ({
                 <span className="font-medium">Khoảng cách:</span> {calculateDistance(person.location)} km
               </div>
               
-              <div className="flex gap-2">
+              <div className="flex gap-2 flex-col">
                 <button 
-                  className="flex-1 py-2 px-3 bg-blue-500 text-white rounded-md flex items-center justify-center space-x-1 text-sm hover:bg-blue-600 transition-colors"
+                  className="w-full py-2 px-3 bg-blue-500 text-white rounded-md flex items-center justify-center space-x-1 text-sm hover:bg-blue-600 transition-colors"
                   onClick={() => onComplete(person.id)}
                 >
                   <Check size={14} className="mr-1" />
                   <span>Hoàn thành</span>
                 </button>
                 
-                <button 
-                  className="flex-1 py-2 px-3 border border-gray-300 rounded-md flex items-center justify-center space-x-1 text-sm hover:bg-gray-50 transition-colors"
-                  onClick={() => {
-                    onSelect(person);
-                    onClose();
-                  }}
-                >
-                  <Navigation size={14} className="mr-1" />
-                  <span>Xem trên bản đồ</span>
-                </button>
+                <div className="flex gap-2">
+                  <button 
+                    className="flex-1 py-2 px-3 border border-gray-300 rounded-md flex items-center justify-center space-x-1 text-sm hover:bg-gray-50 transition-colors"
+                    onClick={() => {
+                      onSelect(person);
+                      onClose();
+                    }}
+                  >
+                    <Navigation size={14} className="mr-1" />
+                    <span>Xem trên bản đồ</span>
+                  </button>
+                  
+                  <button 
+                    className="flex-1 py-2 px-3 bg-green-500 text-white rounded-md flex items-center justify-center space-x-1 text-sm hover:bg-green-600 transition-colors"
+                    onClick={() => openGoogleMapsDirections(person.location)}
+                  >
+                    <Navigation size={14} className="mr-1" />
+                    <span>Google Maps</span>
+                  </button>
+                </div>
               </div>
             </div>
           ))}

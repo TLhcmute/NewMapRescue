@@ -7,6 +7,7 @@ import 'leaflet/dist/leaflet.css';
 import { Phone, Navigation, ArrowRight, ArrowLeft, MapPin, Search, Check, MessageCircle, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
 import AcceptedRescues from '../components/AcceptedRescues';
+import { Progress } from '@/components/ui/progress';
 
 // Fix for leaflet icons
 import icon from 'leaflet/dist/images/marker-icon.png';
@@ -69,7 +70,7 @@ interface Person {
   name: string;
   phone: string;
   location: [number, number];
-  status: 'Waiting' | 'In Progress' | 'Rescued' | 'Accepted';
+  status: 'Waiting' | 'Accepted';
   priority: 'high' | 'low';
   image?: string;
   message?: string;
@@ -116,7 +117,7 @@ const mockPeople: Person[] = [
     name: 'Pham Thi D',
     phone: '0901234570',
     location: [10.7800, 106.6950], // Near Ho Chi Minh City
-    status: 'In Progress',
+    status: 'Waiting',
     priority: 'low',
     image: 'https://randomuser.me/api/portraits/women/4.jpg',
     message: 'Cần hỗ trợ y tế, có người bị thương',
@@ -177,6 +178,7 @@ const Map = () => {
   const [acceptedRescues, setAcceptedRescues] = useState<Person[]>([]);
   const [showAcceptedRescues, setShowAcceptedRescues] = useState(false);
   const mapRef = useRef<L.Map | null>(null);
+  const [routeProgress, setRouteProgress] = useState(0);
 
   // Get current location on component mount
   useEffect(() => {
@@ -202,7 +204,7 @@ const Map = () => {
     }
   };
 
-  const calculateDistance = (point1: [number, number], point2: [number, number]): number => {
+  const calculateDistance = (point1: [number, number], point2: [number, number] = currentLocation): number => {
     // This is a simple implementation of the Haversine formula
     const R = 6371; // Radius of the Earth in km
     const dLat = (point2[0] - point1[0]) * Math.PI / 180;
@@ -221,6 +223,26 @@ const Map = () => {
     // For demonstration, we'll draw a straight line between points
     setRoutePoints([currentLocation, to]);
     toast.success("Directions calculated. Follow the blue line on the map.");
+    
+    // Simulate route progress
+    setRouteProgress(0);
+    const interval = setInterval(() => {
+      setRouteProgress(prev => {
+        if (prev >= 100) {
+          clearInterval(interval);
+          return 100;
+        }
+        return prev + 5;
+      });
+    }, 500);
+  };
+
+  const openGoogleMapsDirections = (location: [number, number]) => {
+    const [lat, lng] = location;
+    const destination = `${lat},${lng}`;
+    const url = `https://www.google.com/maps/dir/?api=1&destination=${destination}`;
+    window.open(url, '_blank');
+    toast.success("Opening Google Maps with directions");
   };
 
   // Handler for accepting a rescue request
@@ -286,7 +308,7 @@ const Map = () => {
               center={currentLocation} 
               zoom={13} 
               className="h-[calc(100vh-4rem)]"
-              whenReady={(map) => { mapRef.current = map.target; }}
+              whenCreated={(map) => { mapRef.current = map; }}
             >
               <TileLayer
                 attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
@@ -373,9 +395,7 @@ const Map = () => {
                           <span className={`py-0.5 px-2 rounded-full text-xs ${
                             person.status === 'Waiting' 
                               ? 'bg-rescue-warning/10 text-rescue-warning' 
-                              : person.status === 'In Progress' || person.status === 'Accepted'
-                                ? 'bg-blue-100 text-blue-600' 
-                                : 'bg-green-100 text-green-600'
+                              : 'bg-blue-100 text-blue-600'
                           }`}>
                             {person.status}
                             {person.status === 'Accepted' && (
@@ -397,51 +417,49 @@ const Map = () => {
                         
                         <div className="flex items-center text-sm mb-2">
                           <span className="text-gray-500 mr-1">Distance:</span>
-                          <span>{calculateDistance(currentLocation, person.location)} km</span>
+                          <span>{calculateDistance(person.location)} km</span>
                         </div>
                         
                         {person.status === 'Waiting' ? (
-                          <button 
-                            className="w-full py-2 px-3 bg-green-500 text-white rounded-md flex items-center justify-center space-x-1 text-sm hover:bg-green-600 transition-colors"
-                            onClick={() => handleAcceptRescue(person.id)}
-                          >
-                            <Navigation size={14} className="mr-1" />
-                            <span>Nhận</span>
-                          </button>
+                          <div className="space-y-2">
+                            <button 
+                              className="w-full py-2 px-3 bg-green-500 text-white rounded-md flex items-center justify-center space-x-1 text-sm hover:bg-green-600 transition-colors"
+                              onClick={() => handleAcceptRescue(person.id)}
+                            >
+                              <Navigation size={14} className="mr-1" />
+                              <span>Nhận</span>
+                            </button>
+                            
+                            <button 
+                              className="w-full py-2 px-3 bg-blue-500 text-white rounded-md flex items-center justify-center space-x-1 text-sm hover:bg-blue-600 transition-colors"
+                              onClick={() => openGoogleMapsDirections(person.location)}
+                            >
+                              <Navigation size={14} className="mr-1" />
+                              <span>Chỉ đường Google Maps</span>
+                            </button>
+                          </div>
                         ) : person.status === 'Accepted' ? (
-                          <button 
-                            className="w-full py-2 px-3 bg-blue-500 text-white rounded-md flex items-center justify-center space-x-1 text-sm hover:bg-blue-600 transition-colors"
-                            onClick={() => handleCompleteRescue(person.id)}
-                          >
-                            <Check size={14} className="mr-1" />
-                            <span>Hoàn thành</span>
-                          </button>
-                        ) : (
-                          <button 
-                            className="w-full py-2 px-3 bg-rescue-secondary text-white rounded-md flex items-center justify-center space-x-1 text-sm hover:bg-opacity-90 transition-colors"
-                            onClick={() => getDirections(person.location)}
-                          >
-                            <Navigation size={14} className="mr-1" />
-                            <span>Get Directions</span>
-                          </button>
-                        )}
+                          <div className="space-y-2">
+                            <button 
+                              className="w-full py-2 px-3 bg-blue-500 text-white rounded-md flex items-center justify-center space-x-1 text-sm hover:bg-blue-600 transition-colors"
+                              onClick={() => handleCompleteRescue(person.id)}
+                            >
+                              <Check size={14} className="mr-1" />
+                              <span>Hoàn thành</span>
+                            </button>
+                            
+                            <button 
+                              className="w-full py-2 px-3 bg-green-500 text-white rounded-md flex items-center justify-center space-x-1 text-sm hover:bg-green-600 transition-colors"
+                              onClick={() => openGoogleMapsDirections(person.location)}
+                            >
+                              <Navigation size={14} className="mr-1" />
+                              <span>Chỉ đường Google Maps</span>
+                            </button>
+                          </div>
+                        ) : null}
                       </div>
                     </Popup>
                   </Marker>
-                  
-                  {/* Accepted mark overlay */}
-                  {person.status === 'Accepted' && (
-                    <div className="relative" style={{
-                      position: 'absolute',
-                      top: 0,
-                      left: 0,
-                      transform: `translate(${person.location[1]}px, ${person.location[0]}px)`
-                    }}>
-                      <div className="absolute -top-2 -right-2 bg-green-500 rounded-full p-1 z-[1000]">
-                        <Check size={16} className="text-white" />
-                      </div>
-                    </div>
-                  )}
                 </div>
               ))}
               
@@ -520,9 +538,7 @@ const Map = () => {
                                 <span className={`ml-auto text-xs py-0.5 px-2 rounded-full flex items-center ${
                                   person.status === 'Waiting' 
                                     ? 'bg-rescue-warning/10 text-rescue-warning' 
-                                    : person.status === 'In Progress' || person.status === 'Accepted'
-                                      ? 'bg-blue-100 text-blue-600' 
-                                      : 'bg-green-100 text-green-600'
+                                    : 'bg-blue-100 text-blue-600'
                                 }`}>
                                   {person.status}
                                   {person.status === 'Accepted' && (
@@ -533,7 +549,7 @@ const Map = () => {
                               
                               <div className="flex items-center text-sm text-gray-500">
                                 <span className="mr-2">{person.phone}</span>
-                                <span className="ml-auto">{calculateDistance(currentLocation, person.location)} km</span>
+                                <span className="ml-auto">{calculateDistance(person.location)} km</span>
                               </div>
                               
                               {person.address && (
@@ -565,7 +581,7 @@ const Map = () => {
             onClose={() => setShowAcceptedRescues(false)}
             onComplete={handleCompleteRescue}
             onSelect={handlePersonSelect}
-            calculateDistance={(location) => calculateDistance(currentLocation, location)}
+            calculateDistance={(location) => calculateDistance(location)}
           />
         )}
       </main>
