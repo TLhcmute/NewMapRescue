@@ -91,7 +91,7 @@ interface Person {
   name: string;
   phone: string;
   location: [number, number];
-  status: "Waiting" | "Accepted";
+  status: "Waiting" | "Accepted" | "Finished";
   priority: "high" | "low";
   image?: string;
   message?: string;
@@ -138,7 +138,7 @@ const mockPeople: Person[] = [
     name: "Pham Thi D",
     phone: "0901234570",
     location: [10.78, 106.695], // Near Ho Chi Minh City
-    status: "Waiting",
+    status: "Accepted",
     priority: "low",
     image: "https://randomuser.me/api/portraits/women/4.jpg",
     message: "Cần hỗ trợ y tế, có người bị thương",
@@ -149,7 +149,7 @@ const mockPeople: Person[] = [
     name: "Hoang Van E",
     phone: "0901234571",
     location: [10.773, 106.71], // Near Ho Chi Minh City
-    status: "Waiting",
+    status: "Accepted",
     priority: "high",
     image: "https://randomuser.me/api/portraits/men/5.jpg",
     message: "Nhà có trẻ nhỏ, nước đang dâng cao",
@@ -208,7 +208,7 @@ const Map = () => {
   const [currentLocation, setCurrentLocation] = useState<[number, number]>([
     10.7769, 106.7009,
   ]); // Default to Ho Chi Minh City
-  const [people, setPeople] = useState<Person[]>(mockPeople);
+  const [people, setPeople] = useState<Person[]>([]);
   const [selectedPerson, setSelectedPerson] = useState<Person | null>(null);
   const [showSidebar, setShowSidebar] = useState(true);
   const [routePoints, setRoutePoints] = useState<[number, number][]>([]);
@@ -224,13 +224,16 @@ const Map = () => {
   useEffect(() => {
     const fetchPeopleData = async () => {
       try {
-        const response = await fetch("https://api.example.com/people");
+        const response = await fetch(
+          "https://byteforce.caohoangphuc.id.vn/python/api/get_all_request"
+        );
         if (!response.ok) {
           throw new Error("Dữ liệu không hợp lệ");
         }
         const data = await response.json();
         setPeople(data); // Cập nhật danh sách người với dữ liệu từ API
         setLoading(false); // Đánh dấu kết thúc quá trình tải
+        setAcceptedRescues(data);
       } catch (err) {
         setError("Có lỗi xảy ra khi tải dữ liệu");
         setLoading(false); // Đánh dấu kết thúc quá trình tải dù có lỗi
@@ -317,85 +320,78 @@ const Map = () => {
   };
 
   const handleAcceptRescue = async (personId: string) => {
-    setPeople((prevPeople) => {
-      const updatedPeople = prevPeople.map((person) =>
-        person.id === personId
-          ? { ...person, status: "Accepted" as const }
-          : person
-      );
+    // Tìm người trong danh sách hiện tại
+    const acceptedPerson = people.find((person) => person.id === personId);
 
-      // Lấy người vừa thay đổi trạng thái
-      const acceptedPerson = updatedPeople.find((p) => p.id === personId);
-
-      if (acceptedPerson) {
-        // Gửi dữ liệu cập nhật lên backend
-        const updatePersonOnBackend = async () => {
-          try {
-            const response = await fetch(
-              `https://api.example.com/people/${personId}`,
-              {
-                method: "PUT", // Hoặc 'PATCH' nếu bạn chỉ muốn cập nhật một phần của người đó
-                headers: {
-                  "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                  ...acceptedPerson,
-                  status: "Accepted", // Cập nhật trạng thái người thành "Accepted"
-                }),
-              }
-            );
-
-            if (!response.ok) {
-              throw new Error("Cập nhật trạng thái không thành công");
-            }
-
-            const data = await response.json(); // Dữ liệu trả về từ backend (có thể là đối tượng đã được cập nhật)
-
-            // Sau khi nhận dữ liệu từ backend, cập nhật lại danh sách yêu cầu cứu hộ
-            setAcceptedRescues((prevRescues) => [...prevRescues, data]);
-            toast.success("Bạn đã nhận yêu cầu cứu hộ này!");
-          } catch (err) {
-            console.error("Có lỗi khi cập nhật trạng thái:", err);
-            toast.error("Có lỗi xảy ra khi cập nhật yêu cầu cứu hộ.");
+    if (acceptedPerson) {
+      // Gửi dữ liệu cập nhật lên backend
+      try {
+        const response = await fetch(
+          `https://byteforce.caohoangphuc.id.vn/python/api/change_request_status`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              ...acceptedPerson,
+              status: "Accepted", // Cập nhật trạng thái người thành "Accepted"
+            }),
           }
-        };
+        );
 
-        updatePersonOnBackend(); // Gọi hàm cập nhật lên backend
+        if (!response.ok) {
+          throw new Error("Cập nhật trạng thái không thành công");
+        }
+
+        const data = await response.json(); // Dữ liệu trả về từ backend (có thể là đối tượng đã được cập nhật)
+
+        // Cập nhật trạng thái của người trong danh sách `people` mà không cần reload lại web
+        setPeople((prevPeople) =>
+          prevPeople.map((person) =>
+            person.id === personId ? { ...person, status: "Accepted" } : person
+          )
+        );
+
+        setAcceptedRescues(data);
+
+        // Thông báo thành công
+        toast.success("Bạn đã nhận yêu cầu cứu hộ này!");
+      } catch (err) {
+        console.error("Có lỗi khi cập nhật trạng thái:", err);
+        toast.error("Có lỗi xảy ra khi cập nhật yêu cầu cứu hộ.");
       }
-
-      return updatedPeople;
-    });
+    }
   };
 
   const handleCompleteRescue = async (personId: string) => {
-    // Xóa người dùng khỏi danh sách "people" khi đã hoàn thành
-    setPeople((prevPeople) =>
-      prevPeople.filter((person) => person.id !== personId)
-    );
-
-    // Xóa người trong danh sách "acceptedRescues"
-    setAcceptedRescues((prev) =>
-      prev.filter((person) => person.id !== personId)
-    );
-
-    // Gửi yêu cầu API xóa người khỏi backend
+    // Gửi yêu cầu API cập nhật trạng thái và gửi id tới backend
     try {
       const response = await fetch(
-        `https://api.example.com/people/${personId}`,
+        `https://byteforce.caohoangphuc.id.vn/python/api/change_request_status`, // Đổi link thành API endpoint mới
         {
-          method: "DELETE", // Phương thức xóa dữ liệu
+          method: "POST", // Thay đổi phương thức thành POST
           headers: {
             "Content-Type": "application/json",
           },
+          body: JSON.stringify({
+            id: personId, // Gửi id của người cần thay đổi trạng thái
+            status: "Finished", // Cập nhật trạng thái thành "Finished"
+          }),
         }
       );
 
       if (!response.ok) {
-        throw new Error("Xóa yêu cầu cứu hộ không thành công");
+        throw new Error("Cập nhật trạng thái không thành công");
       }
 
       const data = await response.json();
-      console.log("Yêu cầu cứu hộ đã được xóa thành công:", data);
+      setPeople((prevPeople) =>
+        prevPeople.map((person) =>
+          person.id === personId ? { ...person, status: "Finished" } : person
+        )
+      );
+      console.log("Yêu cầu cứu hộ đã được hoàn thành thành công:", data);
 
       // Thông báo thành công
       toast.success("Cứu hộ đã hoàn thành thành công!");
@@ -405,8 +401,8 @@ const Map = () => {
         mapRef.current.closePopup();
       }
     } catch (err) {
-      console.error("Có lỗi khi xóa yêu cầu cứu hộ:", err);
-      toast.error("Có lỗi xảy ra khi xóa yêu cầu cứu hộ.");
+      console.error("Có lỗi khi cập nhật trạng thái yêu cầu cứu hộ:", err);
+      toast.error("Có lỗi xảy ra khi cập nhật trạng thái yêu cầu cứu hộ.");
     }
   };
 

@@ -1,36 +1,35 @@
-
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
-import { Eye, EyeOff, Ambulance } from 'lucide-react';
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../contexts/AuthContext";
+import { Eye, EyeOff, Ambulance } from "lucide-react";
 
 const Login = () => {
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const { login, user } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
     if (user.isAuthenticated) {
-      navigate('/');
+      navigate("/");
     }
   }, [user, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
+    setError("");
     setLoading(true);
-    
+
     try {
       const success = await login(username, password);
       if (success) {
-        navigate('/');
+        navigate("/");
       }
     } catch (err) {
-      setError('An unexpected error occurred. Please try again.');
+      setError("An unexpected error occurred. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -52,13 +51,18 @@ const Login = () => {
             <Ambulance className="text-white" size={32} />
           </div>
           <h1 className="text-3xl font-bold text-gray-800">Rescue Map Hub</h1>
-          <p className="text-gray-500 mt-2">Sign in to access the rescue platform</p>
+          <p className="text-gray-500 mt-2">
+            Sign in to access the rescue platform
+          </p>
         </div>
 
         <div className="glass-card rounded-2xl p-8 shadow-xl">
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-2">
-              <label htmlFor="username" className="block text-sm font-medium text-gray-700">
+              <label
+                htmlFor="username"
+                className="block text-sm font-medium text-gray-700"
+              >
                 Username
               </label>
               <input
@@ -73,13 +77,16 @@ const Login = () => {
             </div>
 
             <div className="space-y-2">
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+              <label
+                htmlFor="password"
+                className="block text-sm font-medium text-gray-700"
+              >
                 Password
               </label>
               <div className="relative">
                 <input
                   id="password"
-                  type={showPassword ? 'text' : 'password'}
+                  type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="form-input pr-10"
@@ -110,13 +117,13 @@ const Login = () => {
               {loading ? (
                 <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
               ) : (
-                'Sign In'
+                "Sign In"
               )}
             </button>
 
             <div className="text-xs text-center text-gray-500 mt-4">
               <p className="mb-1">Demo credentials:</p>
-              <p>Username: rescue | Password: team123</p>
+              <p>Username: CongNhan | Password: lammuon123</p>
             </div>
           </form>
         </div>
