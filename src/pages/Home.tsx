@@ -62,7 +62,7 @@ const Home = () => {
                 className="tertiary-button flex items-center justify-center gap-2 min-w-[200px]"
               >
                 <MessageSquare size={18} />
-                Team Chat
+                Tư vấn hỗ trợ
               </button>
             </div>
           </div>

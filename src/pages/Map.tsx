@@ -118,7 +118,7 @@ const mockPeople: Person[] = [
     location: [10.7859, 106.696], // Near Ho Chi Minh City
     status: "Waiting",
     priority: "high",
-    image: "https://randomuser.me/api/portraits/women/2.jpg",
+    image: "https://images.weserv.nl/?url=i.imgur.com/xmWLzIw.png",
     message: "Cần giúp di chuyển người già và trẻ em",
     address: "45 Lê Lợi, Quận 1, TP.HCM",
   },
@@ -208,7 +208,7 @@ const Map = () => {
   const [currentLocation, setCurrentLocation] = useState<[number, number]>([
     10.7769, 106.7009,
   ]); // Default to Ho Chi Minh City
-  const [people, setPeople] = useState<Person[]>([]);
+  const [people, setPeople] = useState<Person[]>(mockPeople);
   const [selectedPerson, setSelectedPerson] = useState<Person | null>(null);
   const [showSidebar, setShowSidebar] = useState(true);
   const [routePoints, setRoutePoints] = useState<[number, number][]>([]);
@@ -424,36 +424,37 @@ const Map = () => {
       <main className="flex-1 pt-16 flex flex-col">
         <div className="flex-1 flex flex-col md:flex-row">
           {/* Map Container */}
-          <div className="flex-1 relative">
+          <div className="flex-1 relative bg-gray-100 shadow-lg rounded-lg overflow-hidden">
             <MapContainer
               center={currentLocation}
               zoom={13}
-              className="h-[calc(100vh-4rem)]"
+              className="h-[calc(100vh-4rem)] md:h-[calc(100vh-4rem)] rounded-lg"
               whenCreated={(map) => {
                 mapRef.current = map;
               }}
             >
+              {/* Customize the Tile Layer */}
               <TileLayer
                 attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
               />
 
-              {/* tu dong lay vi tritri */}
+              {/* Auto Recenter */}
               <RecenterAutomatically position={currentLocation} />
 
-              {/* vi tri cuu ho hien tai */}
+              {/* Rescuer Marker */}
               <Marker position={currentLocation} icon={rescuerIcon}>
                 <Popup>
-                  <div className="p-1">
-                    <strong>Your Location</strong>
-                    <p className="text-xs text-gray-500">
+                  <div className="p-2">
+                    <strong className="text-xl">Your Location</strong>
+                    <p className="text-xs text-gray-600">
                       {currentLocation[0]}, {currentLocation[1]}
                     </p>
                   </div>
                 </Popup>
               </Marker>
 
-              {/* đoạn mã render các icon market của người dùng tùy vào priority ( màu sắc), location vị trí */}
+              {/* People Markers */}
               {people.map((person) => (
                 <div key={person.id}>
                   <Marker
@@ -478,9 +479,9 @@ const Map = () => {
                       </div>
                     )}
                     <Popup>
-                      <div className="p-2 min-w-[250px]">
+                      <div className="p-4 min-w-[250px]">
                         {person.image && (
-                          <div className="mb-2 overflow-hidden rounded-md">
+                          <div className="mb-2 overflow-hidden rounded-md shadow-lg">
                             <img
                               src={person.image}
                               alt={person.name}
@@ -507,7 +508,9 @@ const Map = () => {
                         {person.address && (
                           <div className="flex items-start text-sm mb-1">
                             <span className="text-gray-500 mr-1">Địa chỉ:</span>
-                            <span className="flex-1">{person.address}</span>
+                            <span className="flex-1 break-words">
+                              {person.address}
+                            </span>
                           </div>
                         )}
 
@@ -555,7 +558,8 @@ const Map = () => {
                           <span className="text-gray-500 mr-1">Distance:</span>
                           <span>{calculateDistance(person.location)} km</span>
                         </div>
-                        {/* nhận và gửi API về Backend */}
+
+                        {/* Accept and complete buttons */}
                         {person.status === "Waiting" ? (
                           <div className="space-y-2">
                             <button
@@ -617,7 +621,7 @@ const Map = () => {
 
             {/* Sidebar toggle button */}
             <button
-              className="absolute bottom-24 right-4 z-[999] p-3 rounded-full bg-white shadow-md hover:shadow-lg transition-all"
+              className="absolute bottom-24 right-4 z-[999] p-3 rounded-full bg-white shadow-md hover:shadow-lg transition-all md:hidden"
               onClick={() => setShowSidebar(!showSidebar)}
             >
               {showSidebar ? <ArrowRight size={20} /> : <ArrowLeft size={20} />}
@@ -625,7 +629,7 @@ const Map = () => {
 
             {/* Accepted rescues toggle button */}
             <button
-              className="absolute bottom-6 right-4 z-[999] p-3 rounded-full bg-green-500 text-white shadow-md hover:shadow-lg transition-all"
+              className="absolute bottom-6 right-4 z-[999] p-3 rounded-full bg-green-500 text-white shadow-md hover:shadow-lg transition-all md:hidden"
               onClick={() => setShowAcceptedRescues(!showAcceptedRescues)}
             >
               <Check size={20} />
@@ -634,8 +638,8 @@ const Map = () => {
 
           {/* Sidebar for people list */}
           <div
-            className={`bg-white border-l overflow-hidden transition-all duration-300 ${
-              showSidebar ? "w-full md:w-96 opacity-100" : "w-0 opacity-0"
+            className={`bg-white border-l overflow-hidden transition-all duration-300 md:w-96 ${
+              showSidebar ? "w-full opacity-100" : "w-0 opacity-0"
             }`}
           >
             {showSidebar && (
@@ -706,7 +710,7 @@ const Map = () => {
                               </div>
 
                               {person.address && (
-                                <div className="text-xs text-gray-500 truncate mt-1">
+                                <div className="text-xs text-gray-500 mt-1 break-words whitespace-pre-wrap">
                                   {person.address}
                                 </div>
                               )}

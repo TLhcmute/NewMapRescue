@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 import Header from "../components/Header";
-import { Send, MapPin, MessageSquare, Bot } from "lucide-react";
+import { Send, MapPin, MessageSquare, Bot, X, HeartPulse } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
-import { toast } from "sonner";
+import { ToastContainer, toast } from "react-toastify";
 import {
   Sheet,
   SheetContent,
@@ -12,607 +12,485 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
+import "react-toastify/dist/ReactToastify.css";
 
-interface Message {
-  id: string;
-  sender: string;
-  content: string;
-  timestamp: Date;
-  isCurrentUser: boolean;
-  isLocation?: boolean;
+interface ChatMessage {
+  sender: "User" | "AI";
+  text: string;
+  image?: string | null;
+  timestamp: string;
 }
-
-interface TeamMember {
+interface Person {
   id: string;
   name: string;
-  avatar: string;
-  isOnline: boolean;
-  lastSeen?: Date;
+  phone: string;
+  location: [number, number];
+  status: "Waiting" | "Accepted" | "Finished";
+  priority: "high" | "low";
+  image?: string;
+  message?: string;
+  address?: string;
 }
+const RescueBot: React.FC = () => {
+  const [message, setMessage] = useState<string>("");
+  const [image, setImage] = useState<File | null>(null);
+  const [rescueList, setRescueList] = useState<Person[]>([]);
+  const [responseData, setResponseData] = useState(null);
+  const [error, setError] = useState(null);
 
-// Mock data for team members
-const mockTeamMembers: TeamMember[] = [
-  {
-    id: "1",
-    name: "Nguyen Cuu Ho",
-    avatar: "https://randomuser.me/api/portraits/men/32.jpg",
-    isOnline: true,
-  },
-  {
-    id: "2",
-    name: "Tran Y Te",
-    avatar: "https://randomuser.me/api/portraits/women/44.jpg",
-    isOnline: true,
-  },
-  {
-    id: "3",
-    name: "Le Van An",
-    avatar: "https://randomuser.me/api/portraits/men/59.jpg",
-    isOnline: false,
-    lastSeen: new Date(Date.now() - 1000 * 60 * 15), // 15 minutes ago
-  },
-  {
-    id: "4",
-    name: "Pham Thu Y",
-    avatar: "https://randomuser.me/api/portraits/women/17.jpg",
-    isOnline: true,
-  },
-  {
-    id: "5",
-    name: "Hoang Minh",
-    avatar: "https://randomuser.me/api/portraits/men/91.jpg",
-    isOnline: false,
-    lastSeen: new Date(Date.now() - 1000 * 60 * 60), // 1 hour ago
-  },
-];
+  const handlePostRequest = async (id: string) => {
+    setLoading(true);
+    setError(null);
 
-// Mock initial team messages
-const generateInitialTeamMessages = (currentUsername: string): Message[] => {
-  return [
-    {
-      id: "1",
-      sender: "Nguyen Cuu Ho",
-      content:
-        "Team, I have a new rescue mission at District 1. Anyone available?",
-      timestamp: new Date(Date.now() - 1000 * 60 * 30), // 30 minutes ago
-      isCurrentUser: "Nguyen Cuu Ho" === currentUsername,
-    },
-    {
-      id: "2",
-      sender: "Tran Y Te",
-      content: "I can be there in 15 minutes. What's the priority level?",
-      timestamp: new Date(Date.now() - 1000 * 60 * 25), // 25 minutes ago
-      isCurrentUser: "Tran Y Te" === currentUsername,
-    },
-    {
-      id: "3",
-      sender: "Nguyen Cuu Ho",
-      content: "High priority. Elderly person with possible injuries.",
-      timestamp: new Date(Date.now() - 1000 * 60 * 20), // 20 minutes ago
-      isCurrentUser: "Nguyen Cuu Ho" === currentUsername,
-    },
-    {
-      id: "4",
-      sender: "Pham Thu Y",
-      content: "I'll bring medical supplies. Estimated arrival: 20 minutes.",
-      timestamp: new Date(Date.now() - 1000 * 60 * 15), // 15 minutes ago
-      isCurrentUser: "Pham Thu Y" === currentUsername,
-    },
-    {
-      id: "5",
-      sender: "Nguyen Cuu Ho",
-      content: "Perfect. I'm sending the exact coordinates to your map now.",
-      timestamp: new Date(Date.now() - 1000 * 60 * 10), // 10 minutes ago
-      isCurrentUser: "Nguyen Cuu Ho" === currentUsername,
-    },
-  ];
-};
-
-// Mock initial AI messages
-const generateInitialAIMessages = (currentUsername: string): Message[] => {
-  return [
-    {
-      id: "1",
-      sender: "AI Assistant",
-      content:
-        "Xin chào! Tôi là trợ lý AI của Rescue Map Hub. Tôi có thể giúp gì cho bạn?",
-      timestamp: new Date(Date.now() - 1000 * 60 * 5), // 5 minutes ago
-      isCurrentUser: false,
-    },
-    {
-      id: "2",
-      sender: currentUsername,
-      content: "Làm thế nào để tôi có thể nhận một nhiệm vụ cứu hộ mới?",
-      timestamp: new Date(Date.now() - 1000 * 60 * 4), // 4 minutes ago
-      isCurrentUser: true,
-    },
-    {
-      id: "3",
-      sender: "AI Assistant",
-      content:
-        'Để nhận nhiệm vụ cứu hộ mới, bạn có thể vào trang "Map", tìm các điểm cứu hộ màu đỏ (ưu tiên cao) hoặc xanh dương (ưu tiên thấp), và nhấn vào nút "Nhận" trong popup. Sau khi hoàn thành nhiệm vụ, bạn có thể nhấn "Hoàn thành" để xác nhận.',
-      timestamp: new Date(Date.now() - 1000 * 60 * 3), // 3 minutes ago
-      isCurrentUser: false,
-    },
-  ];
-};
-
-const Chat = () => {
-  const { user } = useAuth();
-  const [teamMessages, setTeamMessages] = useState<Message[]>([]);
-  const [aiMessages, setAIMessages] = useState<Message[]>([]);
-  const [teamMembers, setTeamMembers] = useState<TeamMember[]>(mockTeamMembers);
-  const [teamNewMessage, setTeamNewMessage] = useState("");
-  const [aiNewMessage, setAINewMessage] = useState("");
-  const [activeChatType, setActiveChatType] = useState<"team" | "ai">("team");
-  const teamMessagesEndRef = useRef<HTMLDivElement>(null);
-  const aiMessagesEndRef = useRef<HTMLDivElement>(null);
-
-  // Initialize messages based on current user
-  useEffect(() => {
-    setTeamMessages(generateInitialTeamMessages(user.username));
-    setAIMessages(generateInitialAIMessages(user.username));
-  }, [user.username]);
-
-  // Auto-scroll to the bottom when messages change
-  useEffect(() => {
-    if (activeChatType === "team") {
-      teamMessagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    } else {
-      aiMessagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    }
-  }, [teamMessages, aiMessages, activeChatType]);
-
-  const handleSendTeamMessage = (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (teamNewMessage.trim() === "") return;
-
-    const message: Message = {
-      id: Date.now().toString(),
-      sender: user.username,
-      content: teamNewMessage,
-      timestamp: new Date(),
-      isCurrentUser: true,
-    };
-
-    setTeamMessages([...teamMessages, message]);
-    setTeamNewMessage("");
-  };
-
-  const handleSendAIMessage = async (e: React.FormEvent) => {
-    setAINewMessage("");
-    e.preventDefault();
-
-    if (aiNewMessage.trim() === "") return;
-
-    // Add user message
-    const userMessage: Message = {
-      id: Date.now().toString(),
-      sender: user.username,
-      content: aiNewMessage,
-      timestamp: new Date(),
-      isCurrentUser: true,
-    };
-
-    setAIMessages((prevMessages) => [...prevMessages, userMessage]);
-
-    // Get AI response from the API
-    const aiResponse = await generateAIResponse(aiNewMessage); // Gọi API chatbot để lấy phản hồi
-
-    // Add AI response message
-    const aiResponseMessage: Message = {
-      id: (Date.now() + 1).toString(),
-      sender: "AI Assistant",
-      content: aiResponse,
-      timestamp: new Date(),
-      isCurrentUser: false,
-    };
-
-    // Add AI response to messages directly after getting the response
-    setAIMessages((prevMessages) => [...prevMessages, aiResponseMessage]);
-
-    setAINewMessage(""); // Clear the input field
-  };
-
-  // Hàm gọi API chatbot (sử dụng fetch để lấy phản hồi)
-  const generateAIResponse = async (query: string): Promise<string> => {
     try {
-      // Gửi yêu cầu POST đến API chatbot với nội dung message
       const response = await fetch(
-        "https://byteforce.caohoangphuc.id.vn/python/api/get_gemini_rsp", // API endpoint của bạn
+        "https://byteforce.caohoangphuc.id.vn/python/api/get_recomment_action_rescuer",
         {
-          method: "POST", // Chuyển từ GET sang POST
+          method: "POST",
           headers: {
-            "Content-Type": "application/json", // Xác định rằng body là JSON
+            "Content-Type": "application/json",
           },
-          body: JSON.stringify({ message: query }), // Gửi câu hỏi dưới dạng message
+          body: JSON.stringify({ id: id }), // Dữ liệu gửi đi
         }
       );
 
       if (!response.ok) {
-        throw new Error("Không thể lấy phản hồi từ chatbot");
+        throw new Error("Lỗi khi gửi yêu cầu");
+      }
+
+      const data = await response.text();
+      toast.info(data, {
+        position: "top-right",
+        autoClose: 50000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        className:
+          "bg-white text-gray-800 px-6 py-4 rounded-xl shadow-2xl text-lg font-medium flex items-center space-x-4 border border-gray-200/50 bg-gradient-to-r from-white to-indigo-50/30 hover:bg-gray-50 transition-all duration-300 ease-in-out transform hover:scale-105 ring-1 ring-indigo-300/20",
+        progressClassName: "bg-indigo-500 h-1 rounded-full",
+      });
+    } catch (err) {
+      setError(err.message); // Xử lý lỗi nếu có
+    } finally {
+      setLoading(false);
+    }
+  };
+  useEffect(() => {
+    const fetchRescueList = async () => {
+      try {
+        const response = await fetch(
+          "https://byteforce.caohoangphuc.id.vn/python/api/get_all_request"
+        );
+        const data: Person[] = await response.json();
+        setRescueList(data);
+      } catch (error) {
+        console.error("Lỗi khi tải danh sách cứu hộ:", error);
+      }
+    };
+    fetchRescueList();
+  }, []);
+
+  const [chatHistory, setChatHistory] = useState<ChatMessage[]>([
+    {
+      sender: "AI",
+      text: `Chào,Tôi sẽ trả lời giải đáp các thông tin để hỗ trợ đội cứu hộ ( ví dụ: tư vấn về trường hợp đang cần cứu trợ, tư vấn tâm lý cho đội cứu hộ,...). Bạn cần tôi giúp gì không?`,
+      image: null,
+      timestamp: new Date().toLocaleTimeString(),
+    },
+  ]);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [showImageModal, setShowImageModal] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const { user } = useAuth();
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [chatHistory]);
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error("Image size must be less than 5MB");
+        return;
+      }
+      setImage(file);
+    }
+  };
+  const handleSupportRequest = async (personId: string, personName: string) => {
+    try {
+      const response = await fetch(
+        "https://byteforce.caohoangphuc.id.vn/python/api/support_request",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ id: personId }),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Gửi hỗ trợ thất bại");
+      }
+      const aiResponse: string = `Giờ đây tôi sẽ hỗ trợ bạn các thông tin về người dùng ${personName}`;
+
+      const aiMessage: ChatMessage = {
+        sender: "AI",
+        text: aiResponse,
+        image: null,
+        timestamp: new Date().toLocaleTimeString(),
+      };
+      setChatHistory((prev) => [...prev, aiMessage]);
+      toast.success("Đã gửi hỗ trợ thành công");
+    } catch (error) {
+      console.error("Lỗi khi gửi hỗ trợ:", error);
+      toast.error("Không thể gửi hỗ trợ");
+    }
+  };
+
+  const handleSendMessage = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!message.trim() && !image) return;
+
+    const userMessage: ChatMessage = {
+      sender: "User",
+      text: message || "",
+      image: image ? URL.createObjectURL(image) : null,
+      timestamp: new Date().toLocaleTimeString(),
+    };
+    setChatHistory((prev) => [...prev, userMessage]);
+    setLoading(true);
+
+    try {
+      const formData = new FormData();
+      if (message) formData.append("message", message);
+      if (image) formData.append("image", image);
+
+      const response = await fetch(
+        "https://byteforce.caohoangphuc.id.vn/python/api/get_gemini_rsp",
+        {
+          method: "POST",
+          body: formData,
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to get response from AI");
       }
 
       const data = await response.json();
-      // console.log(data); // Kiểm tra cấu trúc của dữ liệu trả về
+      const aiResponse = data;
 
-      return data;
-      // Kiểm tra xem có trường "response" trong dữ liệu trả về không
-      if (data && data.response) {
-        return data.response; // Trả về câu trả lời từ API
-      } else {
-        return "Xin lỗi, tôi không thể trả lời câu hỏi này."; // Trả về thông báo lỗi nếu không có trường "response"
-      }
+      const aiMessage: ChatMessage = {
+        sender: "AI",
+        text: aiResponse,
+        image: null,
+        timestamp: new Date().toLocaleTimeString(),
+      };
+      setChatHistory((prev) => [...prev, aiMessage]);
     } catch (error) {
-      console.error("Lỗi khi gọi API chatbot:", error);
-      return "Xin lỗi, có sự cố khi gọi API chatbot."; // Trả về thông báo lỗi nếu có vấn đề
-    }
-  };
-
-  const handleShareLocation = () => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const locationMessage: Message = {
-            id: Date.now().toString(),
-            sender: user.username,
-            content: `Vị trí hiện tại của tôi: ${position.coords.latitude.toFixed(
-              6
-            )}, ${position.coords.longitude.toFixed(6)}`,
-            timestamp: new Date(),
-            isCurrentUser: true,
-            isLocation: true,
-          };
-
-          if (activeChatType === "team") {
-            setTeamMessages([...teamMessages, locationMessage]);
-          } else {
-            setAIMessages([...aiMessages, locationMessage]);
-          }
-
-          toast.success("Đã chia sẻ vị trí thành công");
+      console.error("Error calling AI API:", error);
+      toast.error("Failed to get response from AI");
+      setChatHistory((prev) => [
+        ...prev,
+        {
+          sender: "AI",
+          text: "Sorry, something went wrong. Please try again.",
+          image: null,
+          timestamp: new Date().toLocaleTimeString(),
         },
-        (error) => {
-          console.error("Error getting location:", error);
-          toast.error(
-            "Không thể chia sẻ vị trí. Vui lòng kiểm tra quyền truy cập."
-          );
-        }
-      );
-    } else {
-      toast.error("Trình duyệt của bạn không hỗ trợ định vị vị trí.");
+      ]);
+    } finally {
+      setLoading(false);
+      setMessage("");
+      setImage(null);
+      if (fileInputRef.current) fileInputRef.current.value = "";
     }
-  };
-
-  const formatTime = (date: Date) => {
-    return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-  };
-
-  const formatLastSeen = (date?: Date) => {
-    if (!date) return "Offline";
-
-    const minutesAgo = Math.floor((Date.now() - date.getTime()) / (1000 * 60));
-
-    if (minutesAgo < 1) return "Just now";
-    if (minutesAgo === 1) return "1 minute ago";
-    if (minutesAgo < 60) return `${minutesAgo} minutes ago`;
-
-    const hoursAgo = Math.floor(minutesAgo / 60);
-    if (hoursAgo === 1) return "1 hour ago";
-    if (hoursAgo < 24) return `${hoursAgo} hours ago`;
-
-    return date.toLocaleDateString();
-  };
-
-  const renderMessage = (message: Message) => {
-    return (
-      <div
-        key={message.id}
-        className={`flex ${
-          message.isCurrentUser ? "justify-end" : "justify-start"
-        }`}
-      >
-        {!message.isCurrentUser && (
-          <div className="w-8 h-8 rounded-full mr-2 mt-1 overflow-hidden">
-            {activeChatType === "team" ? (
-              <img
-                src={
-                  teamMembers.find((m) => m.name === message.sender)?.avatar ||
-                  "https://via.placeholder.com/40"
-                }
-                alt={message.sender}
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <div className="w-full h-full bg-rescue-tertiary text-white flex items-center justify-center">
-                <Bot size={16} />
-              </div>
-            )}
-          </div>
-        )}
-
-        <div className="max-w-[80%] flex flex-col">
-          {!message.isCurrentUser && (
-            <span className="text-xs text-gray-500 mb-1 ml-1">
-              {message.sender}
-            </span>
-          )}
-
-          <div
-            className={`px-4 py-2 rounded-lg ${
-              message.isCurrentUser
-                ? "bg-rescue-tertiary text-white"
-                : "bg-white border"
-            }`}
-          >
-            {message.isLocation ? (
-              <div>
-                <div className="flex items-center gap-1 mb-1">
-                  <MapPin size={16} />
-                  <span className="font-medium">Vị trí đã chia sẻ</span>
-                </div>
-                <p>{message.content}</p>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="mt-2 text-xs"
-                  onClick={() => {
-                    const coords = message.content.split(": ")[1];
-                    if (coords) {
-                      window.open(
-                        `https://www.google.com/maps/search/?api=1&query=${coords}`,
-                        "_blank"
-                      );
-                    }
-                  }}
-                >
-                  Xem trên bản đồ
-                </Button>
-              </div>
-            ) : (
-              <p>{message.content}</p>
-            )}
-          </div>
-
-          <span
-            className={`text-xs text-gray-500 mt-1 ${
-              message.isCurrentUser ? "text-right" : "text-left"
-            }`}
-          >
-            {formatTime(message.timestamp)}
-          </span>
-        </div>
-      </div>
-    );
   };
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen bg-white flex flex-col font-sans">
       <Header />
 
-      <main className="flex-1 pt-16 flex flex-col">
-        {/* Chat Type Selector */}
-        <div className="flex border-b">
-          <button
-            className={`flex-1 py-3 px-4 flex justify-center items-center space-x-2 ${
-              activeChatType === "team"
-                ? "bg-gray-100 border-b-2 border-rescue-tertiary"
-                : ""
-            }`}
-            onClick={() => setActiveChatType("team")}
-          >
-            <MessageSquare size={20} />
-            <span>Team Chat</span>
-          </button>
-          <button
-            className={`flex-1 py-3 px-4 flex justify-center items-center space-x-2 ${
-              activeChatType === "ai"
-                ? "bg-gray-100 border-b-2 border-rescue-tertiary"
-                : ""
-            }`}
-            onClick={() => setActiveChatType("ai")}
-          >
-            <Bot size={20} />
-            <span>AI Consultation</span>
-          </button>
-        </div>
-
-        {/* Team Chat */}
-        <div
-          className={`flex-1 flex ${
-            activeChatType === "team" ? "flex" : "hidden"
-          }`}
-        >
-          {/* Team members sidebar (desktop) */}
-          <div className="hidden md:block w-80 bg-white border-r overflow-y-auto">
-            <div className="p-4 border-b">
-              <h2 className="text-xl font-semibold">Team Members</h2>
-            </div>
-
-            <div className="space-y-1 p-2">
-              {teamMembers.map((member) => (
-                <div
-                  key={member.id}
-                  className="flex items-center p-3 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
-                >
-                  <div className="relative">
-                    <img
-                      src={member.avatar}
-                      alt={member.name}
-                      className="w-10 h-10 rounded-full object-cover"
-                    />
-                    {member.isOnline && (
-                      <div className="absolute bottom-0 right-0">
-                        <div className="w-3 h-3 rounded-full bg-green-500 border-2 border-white"></div>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="ml-3">
-                    <h3 className="font-medium text-gray-900">{member.name}</h3>
-                    <p className="text-xs text-gray-500">
-                      {member.isOnline
-                        ? "Online"
-                        : formatLastSeen(member.lastSeen)}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Chat area */}
-          <div className="flex-1 flex flex-col h-[calc(100vh-4rem-3.5rem)]">
-            {/* Mobile team members */}
-            <div className="md:hidden p-3 border-b flex justify-between items-center">
-              <h2 className="text-lg font-semibold">Team Chat</h2>
-              <Sheet>
-                <SheetTrigger asChild>
-                  <button className="px-3 py-1 bg-gray-100 rounded-md text-sm font-medium">
-                    Show Members
-                  </button>
-                </SheetTrigger>
-                <SheetContent>
-                  <SheetHeader>
-                    <SheetTitle>Team Members</SheetTitle>
-                    <SheetDescription>
-                      Your rescue team members
-                    </SheetDescription>
-                  </SheetHeader>
-                  <div className="space-y-4 mt-6">
-                    {teamMembers.map((member) => (
-                      <div
-                        key={member.id}
-                        className="flex items-center p-3 rounded-lg hover:bg-gray-50 transition-colors"
-                      >
-                        <div className="relative">
-                          <img
-                            src={member.avatar}
-                            alt={member.name}
-                            className="w-12 h-12 rounded-full object-cover"
-                          />
-                          {member.isOnline && (
-                            <div className="absolute bottom-0 right-0">
-                              <div className="w-3 h-3 rounded-full bg-green-500 border-2 border-white"></div>
-                            </div>
-                          )}
-                        </div>
-
-                        <div className="ml-3">
-                          <h3 className="font-medium text-gray-900">
-                            {member.name}
-                          </h3>
-                          <p className="text-xs text-gray-500">
-                            {member.isOnline
-                              ? "Online"
-                              : formatLastSeen(member.lastSeen)}
-                          </p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </SheetContent>
-              </Sheet>
-            </div>
-
-            {/* Messages */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">
-              {teamMessages.map((message) => renderMessage(message))}
-              <div ref={teamMessagesEndRef} />
-            </div>
-
-            {/* Message input */}
-            <div className="p-4 border-t bg-white">
-              <form
-                onSubmit={handleSendTeamMessage}
-                className="flex items-center space-x-2"
-              >
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="icon"
-                  className="rounded-full flex-shrink-0 text-gray-500 hover:text-rescue-tertiary hover:bg-gray-100"
-                  onClick={handleShareLocation}
-                  aria-label="Chia sẻ vị trí"
-                >
-                  <MapPin size={20} />
-                </Button>
-
-                <input
-                  type="text"
-                  placeholder="Nhập tin nhắn..."
-                  className="flex-1 px-4 py-2 border rounded-full focus:outline-none focus:ring-2 focus:ring-rescue-tertiary/50"
-                  value={teamNewMessage}
-                  onChange={(e) => setTeamNewMessage(e.target.value)}
-                />
-
-                <Button
-                  type="submit"
-                  size="icon"
-                  className="rounded-full bg-rescue-tertiary hover:bg-rescue-tertiary/90"
-                  disabled={teamNewMessage.trim() === ""}
-                  aria-label="Gửi tin nhắn"
-                >
-                  <Send size={20} />
-                </Button>
-              </form>
-            </div>
-          </div>
-        </div>
-
-        {/* AI Chat */}
-        <div
-          className={`flex-1 flex flex-col h-[calc(100vh-4rem-3.5rem)] ${
-            activeChatType === "ai" ? "flex" : "hidden"
-          }`}
-        >
-          {/* Messages */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">
-            {aiMessages.map((message) => renderMessage(message))}
-            <div ref={aiMessagesEndRef} />
-          </div>
-
-          {/* Message input */}
-          <div className="p-4 border-t bg-white">
-            <form
-              onSubmit={handleSendAIMessage}
-              className="flex items-center space-x-2"
-            >
+      <div className="flex-1 flex flex-col">
+        <div className="bg-white border-b border-gray-200 p-4 flex justify-between items-center">
+          <h2 className="text-xl font-semibold text-black flex items-center gap-2">
+            <Bot className="w-6 h-6 text-black" />
+            ByteRescue – RescueBot
+          </h2>
+          <Sheet>
+            <SheetTrigger asChild>
               <Button
-                type="button"
                 variant="outline"
-                size="icon"
-                className="rounded-full flex-shrink-0 text-gray-500 hover:text-rescue-tertiary hover:bg-gray-100"
-                onClick={handleShareLocation}
-                aria-label="Chia sẻ vị trí"
+                className="flex items-center gap-2 border-gray-300 text-black hover:bg-gray-100"
               >
-                <MapPin size={20} />
+                <MessageSquare className="w-5 h-5" />
+                Suggested Questions
               </Button>
+            </SheetTrigger>
+            <SheetContent className="bg-white border-l border-gray-200">
+              <SheetHeader>
+                <SheetTitle className="text-black">
+                  Suggested Questions
+                </SheetTitle>
+                <SheetDescription className="text-gray-600">
+                  Here are some questions you can ask the AI to assist with
+                  rescue operations.
+                </SheetDescription>
+              </SheetHeader>
+              <div className="mt-4 space-y-2">
+                <Button
+                  variant="ghost"
+                  className="w-full text-left text-black hover:bg-gray-100"
+                  onClick={() =>
+                    setMessage(
+                      "What should I do if someone is trapped in a flooded area?"
+                    )
+                  }
+                >
+                  What should I do if someone is trapped in a flooded area?
+                </Button>
+                <Button
+                  variant="ghost"
+                  className="w-full text-left text-black hover:bg-gray-100"
+                  onClick={() =>
+                    setMessage("How can I prioritize rescue tasks?")
+                  }
+                >
+                  How can I prioritize rescue tasks?
+                </Button>
+                <Button
+                  variant="ghost"
+                  className="w-full text-left text-black hover:bg-gray-100"
+                  onClick={() =>
+                    setMessage("Can you analyze this image for me?")
+                  }
+                >
+                  Can you analyze this image for me?
+                </Button>
+              </div>
+            </SheetContent>
+          </Sheet>
+        </div>
 
+        <div className="flex-1 overflow-y-auto p-6 bg-white">
+          <div className="max-w-4xl mx-auto">
+            {chatHistory.map((msg, index) => (
+              <div
+                key={index}
+                className={`flex ${
+                  msg.sender === "User" ? "justify-end" : "justify-start"
+                } mb-4 animate-fade-in`}
+              >
+                <div
+                  className={`max-w-[80%] sm:max-w-[70%] p-4 rounded-lg transition-all duration-300 ${
+                    msg.sender === "User"
+                      ? "bg-white border border-gray-200 text-black"
+                      : "bg-gray-100 text-black"
+                  }`}
+                >
+                  <div className="flex items-center gap-2 mb-2">
+                    {msg.sender === "User" ? (
+                      <span className="font-medium text-black">
+                        {user?.username || "You"}
+                      </span>
+                    ) : (
+                      <span className="font-medium flex items-center gap-1 text-black">
+                        <Bot className="w-5 h-5" /> ByteForce AI
+                      </span>
+                    )}
+                    <span className="text-xs text-gray-500">
+                      {msg.timestamp}
+                    </span>
+                  </div>
+                  {msg.text && (
+                    <p className="text-sm leading-relaxed">{msg.text}</p>
+                  )}
+                  {msg.image && (
+                    <img
+                      src={msg.image}
+                      alt="Chat content"
+                      className="mt-2 max-w-full sm:max-w-[300px] rounded-lg cursor-pointer hover:scale-105 transition-transform duration-300"
+                      onClick={() => setShowImageModal(msg.image)}
+                    />
+                  )}
+                </div>
+              </div>
+            ))}
+            <div ref={messagesEndRef} />
+          </div>
+        </div>
+
+        <div className="bg-white border-t border-gray-200 p-4">
+          <form
+            onSubmit={handleSendMessage}
+            className="flex items-end gap-3 max-w-4xl mx-auto"
+          >
+            <div className="flex flex-col gap-2">
+              {image && (
+                <div className="relative">
+                  <img
+                    src={URL.createObjectURL(image)}
+                    alt="Preview"
+                    className="w-24 h-24 object-cover rounded-lg border border-gray-200"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setImage(null);
+                      if (fileInputRef.current) fileInputRef.current.value = "";
+                    }}
+                    className="absolute -top-2 -right-2 bg-gray-300 text-black rounded-full p-1 hover:bg-gray-400 transition-colors"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              )}
+              <div className="flex gap-3">
+                {/* Upload Image Button */}
+                <label className="cursor-pointer flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-200 hover:bg-gray-100 transition-colors">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageChange}
+                    ref={fileInputRef}
+                    className="hidden"
+                  />
+                  <MapPin className="w-5 h-5 text-black" />
+                  <span className="text-sm font-medium text-black">
+                    Upload Image
+                  </span>
+                </label>
+
+                {/* New Map Pin Button */}
+              </div>
+            </div>
+
+            <div className="flex-1">
               <input
                 type="text"
-                placeholder="Hỏi AI trợ giúp..."
-                className="flex-1 px-4 py-2 border rounded-full focus:outline-none focus:ring-2 focus:ring-rescue-tertiary/50"
-                value={aiNewMessage}
-                onChange={(e) => setAINewMessage(e.target.value)}
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                placeholder="Ask me anything..."
+                disabled={loading}
+                className="w-full p-3 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-300 text-black placeholder-gray-500"
               />
+            </div>
+            <Sheet>
+              <SheetTrigger asChild>
+                <Button
+                  variant="outline"
+                  className="flex items-center gap-2 border-gray-300 text-black hover:bg-gray-100"
+                >
+                  <HeartPulse className="w-5 h-5 text-red-500" />
+                  Rescue List
+                </Button>
+              </SheetTrigger>
 
-              <Button
-                type="submit"
-                size="icon"
-                className="rounded-full bg-rescue-tertiary hover:bg-rescue-tertiary/90"
-                disabled={aiNewMessage.trim() === ""}
-                aria-label="Gửi tin nhắn"
+              <SheetContent
+                side="right"
+                className="bg-white border-l border-gray-200 w-[320px] sm:w-[400px] px-4 py-6"
               >
-                <Send size={20} />
-              </Button>
-            </form>
-          </div>
+                <SheetHeader>
+                  <SheetTitle className="text-xl font-bold text-black">
+                    Người cần cứu hộ
+                  </SheetTitle>
+                  <SheetDescription className="text-sm text-gray-600">
+                    bạn ấn vào nhún Tư Vấn để nhận hỗ trợ từ AI với thông tin từ
+                    người dùng
+                  </SheetDescription>
+                </SheetHeader>
+
+                <div className="mt-6 space-y-4 overflow-y-auto max-h-[75vh] pr-1 custom-scroll">
+                  {rescueList.length === 0 ? (
+                    <p className="text-sm text-gray-500 text-center">
+                      Không có dữ liệu cứu hộ hiện tại.
+                    </p>
+                  ) : (
+                    rescueList.map((person) => (
+                      <div
+                        key={person.id}
+                        className={`p-4 rounded-xl shadow-md border ${
+                          person.priority === "high"
+                            ? "border-red-400 bg-red-50"
+                            : "border-gray-200 bg-gray-50"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between mb-1">
+                          <h4 className="font-semibold text-black text-sm">
+                            {person.name}
+                          </h4>
+
+                          <span
+                            className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                              person.priority === "high"
+                                ? "bg-red-100 text-red-700"
+                                : "bg-yellow-100 text-yellow-700"
+                            }`}
+                          >
+                            {person.priority === "high" ? "Khẩn cấp" : "Thường"}
+                          </span>
+                        </div>
+
+                        <p className="text-xs text-gray-600 mb-1">
+                          <strong>Địa chỉ:</strong>{" "}
+                          {person.address || "Chưa rõ"}
+                        </p>
+                        <p className="text-xs text-gray-600 mb-1">
+                          <strong>Trạng thái:</strong> {person.status}
+                        </p>
+                        {person.message && (
+                          <p className="text-xs text-gray-500 italic">
+                            “{person.message}”
+                          </p>
+                        )}
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="mt-3 w-full text-black border-gray-300 hover:bg-gray-100 text-xs"
+                          onClick={() => {
+                            handleSupportRequest(person.id, person.name);
+                            handlePostRequest(person.id);
+                          }}
+                        >
+                          Hỗ trợ Tư Vấn
+                        </Button>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </SheetContent>
+            </Sheet>
+            <Button
+              type="submit"
+              disabled={loading}
+              className="flex items-center gap-2 bg-white border border-gray-200 text-black hover:bg-gray-100"
+            >
+              <Send className="w-5 h-5" />
+              {loading ? "Sending..." : "Send"}
+            </Button>
+          </form>
         </div>
-      </main>
+      </div>
+
+      {showImageModal && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 animate-fade-in"
+          onClick={() => setShowImageModal(null)}
+        >
+          <img
+            src={showImageModal}
+            alt="Full size"
+            className="max-w-[90%] max-h-[90%] rounded-lg"
+          />
+        </div>
+      )}
+      <ToastContainer />
     </div>
   );
 };
 
-export default Chat;
+export default RescueBot;
