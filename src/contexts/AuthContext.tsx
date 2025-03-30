@@ -5,6 +5,7 @@ import { toast } from "sonner";
 interface User {
   username: string;
   isAuthenticated: boolean;
+  id: string;
 }
 
 interface AuthContextType {
@@ -16,6 +17,7 @@ interface AuthContextType {
 const initialUser: User = {
   username: "",
   isAuthenticated: false,
+  id: "",
 };
 
 const AuthContext = createContext<AuthContextType>({
@@ -38,21 +40,35 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   }, [user]);
 
   const login = async (
-    username: string,
+    loginName: string,
     password: string
   ): Promise<boolean> => {
-    // Demo credentials check
-    if (username === "CongNhan" && password === "lammuon123") {
+    try {
+      const response = await fetch("https://chiquoc26.id.vn/api/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ loginName, password }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Invalid username or password");
+      }
+
+      const data = await response.json();
+
       setUser({
-        username,
+        username: data.user.yourName,
         isAuthenticated: true,
+        id: data.user.loginName,
       });
       toast.success("Login successful");
       return true;
+    } catch (error) {
+      toast.error(error.message || "An error occurred during login");
+      return false;
     }
-
-    toast.error("Invalid username or password");
-    return false;
   };
 
   const logout = () => {

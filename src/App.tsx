@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -11,7 +10,7 @@ import Home from "./pages/Home";
 import Map from "./pages/Map";
 import Chat from "./pages/Chat";
 import NotFound from "./pages/NotFound";
-
+import GroupChat from "./pages/GroupChat";
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -23,13 +22,14 @@ const App = () => (
         <AuthProvider>
           <Routes>
             <Route path="/login" element={<Login />} />
-            
+
             <Route element={<ProtectedRoute />}>
               <Route path="/" element={<Home />} />
               <Route path="/map" element={<Map />} />
               <Route path="/chat" element={<Chat />} />
+              <Route path="/groupchat" element={<GroupChat />} />
             </Route>
-            
+
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>
