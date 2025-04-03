@@ -224,9 +224,7 @@ const Map = () => {
   useEffect(() => {
     const fetchPeopleData = async () => {
       try {
-        const response = await fetch(
-          "https://byteforce.caohoangphuc.id.vn/python/api/get_all_request"
-        );
+        const response = await fetch("https://chiquoc26.id.vn/api/list");
         if (!response.ok) {
           throw new Error("Dữ liệu không hợp lệ");
         }

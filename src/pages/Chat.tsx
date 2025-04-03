@@ -122,7 +122,7 @@ const RescueBot: React.FC = () => {
   const handleSupportRequest = async (personId: string, personName: string) => {
     try {
       const response = await fetch(
-        "https://byteforce.caohoangphuc.id.vn/python/api/support_request",
+        "https://byteforce.caohoangphuc.id.vn/python/api/get_grok_rsp_client",
         {
           method: "POST",
           headers: {
@@ -170,7 +170,7 @@ const RescueBot: React.FC = () => {
       if (image) formData.append("image", image);
 
       const response = await fetch(
-        "https://byteforce.caohoangphuc.id.vn/python/api/get_gemini_rsp",
+        "https://byteforce.caohoangphuc.id.vn/python/api/get_grok_rsp",
         {
           method: "POST",
           body: formData,

@@ -66,6 +66,14 @@ const Header = () => {
           >
             Group Chat
           </button>
+          <button
+            onClick={() => navigateTo("/dashboard")}
+            className={`nav-item ${
+              isActivePath("/dashboard") ? "nav-item-active" : ""
+            }`}
+          >
+            Dữ liệu thời tiết
+          </button>
 
           {user.isAuthenticated && (
             <div className="ml-6 flex items-center">

@@ -11,6 +11,7 @@ import Map from "./pages/Map";
 import Chat from "./pages/Chat";
 import NotFound from "./pages/NotFound";
 import GroupChat from "./pages/GroupChat";
+import DashBoard from "./pages/dashboard";
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -28,6 +29,7 @@ const App = () => (
               <Route path="/map" element={<Map />} />
               <Route path="/chat" element={<Chat />} />
               <Route path="/groupchat" element={<GroupChat />} />
+              <Route path="/dashboard" element={<DashBoard />} />
             </Route>
 
             <Route path="*" element={<NotFound />} />
