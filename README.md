@@ -1,8 +1,19 @@
-*Trang web hỗ trợ thông báo các vị trí cần được cứu hộ theo mức độ ưu tiên( tình trạng, khoảng cách,...) được đánh dấu trên Map. 
+Trang web hỗ trợ thông báo các vị trí cần cứu hộ, ưu tiên theo mức độ khẩn cấp dựa trên các yếu tố như tình trạng, khoảng cách và các thông tin liên quan, được đánh dấu trực quan trên bản đồ.
 
--Các công nghệ sử dụng: NodeJs, Tailwind, React, Typescript.
-+React-leaflet( Leaflet Routing Machine,Leaflet Distance): : Xây dựng bản đồ và các thành phần (marker, popup), đo khoảng cách chỉ được.
+*Công nghệ sử dụng:
 
--Mọi thông tin được cập nhật ở thời gian thực.
+-Node.js, Tailwind CSS, React, TypeScript, Python Flask. 
 
--Website hỗ trợ nhiều dùng tương tác với nhau sử dụng Socket.io + Reactjs để xây dựng Gr Chat.  Và chat với AI( Gemini, Chat GPT, Grok...) để hỗ trợ tư vấn lộ trình, giải pháp ưu tiên. 
+-React-Leaflet (bao gồm Leaflet Routing Machine, Leaflet Distance): Cung cấp tính năng xây dựng bản đồ, bao gồm các thành phần như marker, popup và tính năng đo khoảng cách chính xác.
+
+-Socket.io + ReactJS: Hỗ trợ giao tiếp thời gian thực giữa các người dùng, tạo môi trường trò chuyện nhóm (Group Chat) và trao đổi thông tin nhanh chóng.
+
+*Tính năng nổi bật:
+
+-Cập nhật thông tin theo thời gian thực: Mọi thay đổi về tình trạng cứu hộ sẽ được cập nhật ngay lập tức, giúp đội cứu hộ nhanh chóng nhận diện tình huống.
+
+-Tích hợp AI để phân tích hình ảnh: Khi người dùng gửi hình ảnh về tình trạng, địa chỉ và các thông tin liên quan, AI sẽ tự động phân tích các yếu tố như tình trạng hiện tại, dữ liệu thời tiết, và đánh giá địa hình khu vực để cung cấp các lời khuyên hữu ích cho đội cứu hộ.
+
+-Dự báo thời tiết chính xác: Trang Dashboard lấy dữ liệu thời tiết thực tế từ API của OpenWeatherMap, giúp đội cứu hộ nắm bắt được tình hình thời tiết tại các địa điểm cần cứu hộ.
+
+-Website này không chỉ đảm bảo sự kết nối giữa các thành viên cứu hộ, mà còn cung cấp công cụ hỗ trợ trực quan và thông minh để đảm bảo công tác cứu hộ được thực hiện nhanh chóng và hiệu quả.
