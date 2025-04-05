@@ -9,6 +9,7 @@ import {
   HeartPulse,
   XCircle,
   Info,
+  Lightbulb,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { ToastContainer, toast } from "react-toastify";
@@ -51,6 +52,20 @@ const RescueBot: React.FC = () => {
     setLoading(true);
     setError(null);
 
+    // Hiển thị thông báo "Đang tải"
+    const toastId = toast.info("Đang tải dữ liệu, vui lòng chờ...", {
+      position: "top-right",
+      autoClose: false, // Thông báo không tự động đóng
+      hideProgressBar: true,
+      closeOnClick: false,
+      pauseOnHover: true,
+      draggable: true,
+      className:
+        "fixed top-10 right-10 bg-gradient-to-r from-white to-gray-100 text-gray-800 px-6 py-4 rounded-xl shadow-lg text-base font-sans font-medium transition-all ease-in-out duration-300 transform hover:scale-102 flex justify-center items-center text-center space-x-3 border border-gray-200 hover:bg-gray-50",
+      progressClassName: "bg-gray-400 h-0.5 rounded-full",
+      icon: false,
+    });
+
     try {
       const response = await fetch("https://chiquoc26.id.vn/api/grokAI", {
         method: "POST",
@@ -66,7 +81,10 @@ const RescueBot: React.FC = () => {
 
       const data = await response.json();
 
-      // Hiển thị thông báo gợi ý mềm mại, hiện đại và tinh tế ở góc phải
+      // Đóng thông báo "Đang tải" sau khi nhận được phản hồi
+      toast.dismiss(toastId);
+
+      // Hiển thị thông báo gợi ý
       toast.info(
         ({ closeToast }) => (
           <div className="flex items-center space-x-3">
@@ -75,8 +93,8 @@ const RescueBot: React.FC = () => {
           </div>
         ),
         {
-          position: "top-right", // Di chuyển thông báo sang góc phải
-          autoClose: 50000, // Thời gian tự động đóng thông báo
+          position: "top-right",
+          autoClose: 50000,
           hideProgressBar: true,
           closeOnClick: true,
           pauseOnHover: true,
@@ -89,6 +107,9 @@ const RescueBot: React.FC = () => {
       );
     } catch (err) {
       setError(err.message); // Xử lý lỗi nếu có
+
+      // Đóng thông báo "Đang tải" khi có lỗi
+      toast.dismiss(toastId);
 
       // Thông báo lỗi
       toast.error(
@@ -241,7 +262,12 @@ const RescueBot: React.FC = () => {
       if (fileInputRef.current) fileInputRef.current.value = "";
     }
   };
+  const [searchQuery, setSearchQuery] = useState(""); // State để lưu giá trị tìm kiếm
 
+  // Hàm lọc danh sách dựa trên tìm kiếm
+  const filteredRescueList = rescueList.filter(
+    (person) => person.name.toLowerCase().includes(searchQuery.toLowerCase()) // Lọc theo tên
+  );
   return (
     <div className="min-h-screen bg-white flex flex-col font-sans">
       <Header />
@@ -416,8 +442,7 @@ const RescueBot: React.FC = () => {
                   variant="outline"
                   className="flex items-center gap-2 border-gray-300 text-black hover:bg-gray-100"
                 >
-                  <HeartPulse className="w-5 h-5 text-red-500" />
-                  Rescue List
+                  Gợi Ý <Lightbulb />
                 </Button>
               </SheetTrigger>
 
@@ -427,21 +452,31 @@ const RescueBot: React.FC = () => {
               >
                 <SheetHeader>
                   <SheetTitle className="text-xl font-bold text-black">
-                    Người cần cứu hộ
+                    <Lightbulb /> Hint
                   </SheetTitle>
                   <SheetDescription className="text-sm text-gray-600">
-                    bạn ấn vào nhún Tư Vấn để nhận hỗ trợ từ AI với thông tin từ
-                    người dùng
+                    Cung cấp gợi ý cho từng trường hợp{" "}
                   </SheetDescription>
                 </SheetHeader>
 
+                {/* Tìm kiếm */}
+                <div className="mb-4">
+                  <input
+                    type="text"
+                    placeholder="Tìm kiếm..."
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                  />
+                </div>
+
                 <div className="mt-6 space-y-4 overflow-y-auto max-h-[75vh] pr-1 custom-scroll">
-                  {rescueList.length === 0 ? (
+                  {filteredRescueList.length === 0 ? (
                     <p className="text-sm text-gray-500 text-center">
                       Không có dữ liệu cứu hộ hiện tại.
                     </p>
                   ) : (
-                    rescueList.map((person) => (
+                    filteredRescueList.map((person) => (
                       <div
                         key={person.id}
                         className={`p-4 rounded-xl shadow-md border ${
