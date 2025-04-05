@@ -43,15 +43,16 @@ const Header = () => {
     setInfoOpen(!infoOpen);
     try {
       const response = await fetch(
-        "https://byteforce.caohoangphuc.id.vn/python/api/get_client_info",
+        "https://byteforce.caohoangphuc.id.vn/python/api/rescuer/get_rescuer_info",
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ id: user.id }),
+          body: JSON.stringify({ id: user.idToken }),
         }
       );
       if (!response.ok) throw new Error("Failed to fetch suggestions");
       const data = await response.json();
+      console.log("User info:", data); // Debug: hiển thị dữ liệu nhận được
       setUserInfo(data);
     } catch (error) {
       console.error("Error fetching suggestions:", error);
@@ -67,7 +68,7 @@ const Header = () => {
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ id: user.id }),
+          body: JSON.stringify({ id: user.idToken }),
         }
       );
       if (!response.ok) throw new Error("Failed to fetch suggestions");
@@ -119,7 +120,7 @@ const Header = () => {
               isActivePath("/chat") ? "nav-item-active" : ""
             }`}
           >
-            Chat
+            AI Assistant
           </button>
           <button
             onClick={() => navigateTo("/groupChat")}
@@ -127,7 +128,15 @@ const Header = () => {
               isActivePath("/groupChat") ? "nav-item-active" : ""
             }`}
           >
-            Group Chat
+            Chat Team
+          </button>
+          <button
+            onClick={() => navigateTo("/dashboard")}
+            className={`nav-item ${
+              isActivePath("/dashboard") ? "nav-item-active" : ""
+            }`}
+          >
+            Dashboard
           </button>
 
           {user.isAuthenticated && (
@@ -142,25 +151,32 @@ const Header = () => {
                 {user.username}
               </button>
               {infoOpen && (
-                <div className="absolute top-full mt-2 w-64 bg-white rounded-lg shadow-md p-3 border text-sm text-gray-700 z-10">
-                  <p>
-                    <span className="font-semibold">Tên:</span> {userInfo?.name}
+                <div className="absolute top-full mt-2 w-64 bg-white rounded-lg shadow-md p-4 border text-sm text-gray-700 z-10">
+                  <p className="flex items-center space-x-2 hover:bg-gray-100 p-2 rounded-md transition duration-200">
+                    <span className="font-semibold text-gray-800">Tên:</span>
+                    <span>{userInfo?.name}</span>
                   </p>
-                  <p>
-                    <span className="font-semibold">age:</span>
-                    {userInfo?.age}
+                  <p className="flex items-center space-x-2 hover:bg-gray-100 p-2 rounded-md transition duration-200">
+                    <span className="font-semibold text-gray-800">Tuổi:</span>
+                    <span>{userInfo?.age}</span>
                   </p>
-                  <p>
-                    <span className="font-semibold">Số điện thoại:</span>
-                    {userInfo?.phone}
+                  <p className="flex items-center space-x-2 hover:bg-gray-100 p-2 rounded-md transition duration-200">
+                    <span className="font-semibold text-gray-800">
+                      Số điện thoại:
+                    </span>
+                    <span>{userInfo?.phone}</span>
                   </p>
-                  <p>
-                    <span className="font-semibold">phương tiện:</span>
-                    {userInfo?.vehicle}
+                  <p className="flex items-center space-x-2 hover:bg-gray-100 p-2 rounded-md transition duration-200">
+                    <span className="font-semibold text-gray-800">
+                      Phương tiện:
+                    </span>
+                    <span>{userInfo?.vehicle}</span>
                   </p>
-                  <p>
-                    <span className="font-semibold">kĩ năng:</span>
-                    {userInfo?.skill}
+                  <p className="flex items-center space-x-2 hover:bg-gray-100 p-2 rounded-md transition duration-200">
+                    <span className="font-semibold text-gray-800">
+                      Kĩ năng:
+                    </span>
+                    <span>{userInfo?.skill}</span>
                   </p>
                 </div>
               )}
@@ -181,7 +197,9 @@ const Header = () => {
                       <span className="font-bold">Gợi ý:</span> {suggestions}
                     </p>
                   ) : (
-                    <p className="text-gray-500">đang lấy gợi ý</p>
+                    <div className="text-sm text-gray-500 italic">
+                      Đang lấy gợi ý....{" "}
+                    </div>
                   )}
                 </div>
               )}

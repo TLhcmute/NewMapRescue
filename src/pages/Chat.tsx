@@ -1,6 +1,16 @@
 import { useState, useEffect, useRef } from "react";
 import Header from "../components/Header";
-import { Send, MapPin, MessageSquare, Bot, X, HeartPulse } from "lucide-react";
+import {
+  Send,
+  MapPin,
+  MessageSquare,
+  Bot,
+  X,
+  HeartPulse,
+  XCircle,
+  Info,
+  Lightbulb,
+} from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { ToastContainer, toast } from "react-toastify";
 import {
@@ -42,40 +52,91 @@ const RescueBot: React.FC = () => {
     setLoading(true);
     setError(null);
 
+    // Hiển thị thông báo "Đang tải"
+    const toastId = toast.info("Đang tải dữ liệu, vui lòng chờ...", {
+      position: "top-right",
+      autoClose: false, // Thông báo không tự động đóng
+      hideProgressBar: true,
+      closeOnClick: false,
+      pauseOnHover: true,
+      draggable: true,
+      className:
+        "fixed top-10 right-10 bg-gradient-to-r from-white to-gray-100 text-gray-800 px-6 py-4 rounded-xl shadow-lg text-base font-sans font-medium transition-all ease-in-out duration-300 transform hover:scale-102 flex justify-center items-center text-center space-x-3 border border-gray-200 hover:bg-gray-50",
+      progressClassName: "bg-gray-400 h-0.5 rounded-full",
+      icon: false,
+    });
+
     try {
-      const response = await fetch(
-        "https://byteforce.caohoangphuc.id.vn/python/api/get_recomment_action_rescuer",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ id: id }), // Dữ liệu gửi đi
-        }
-      );
+      const response = await fetch("https://chiquoc26.id.vn/api/grokAI", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ id: id }), // Dữ liệu gửi đi
+      });
 
       if (!response.ok) {
         throw new Error("Lỗi khi gửi yêu cầu");
       }
 
-      const data = await response.text();
-      toast.info(data, {
-        position: "top-right",
-        autoClose: 50000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: true,
-        draggable: true,
-        className:
-          "bg-white text-gray-800 px-6 py-4 rounded-xl shadow-2xl text-lg font-medium flex items-center space-x-4 border border-gray-200/50 bg-gradient-to-r from-white to-indigo-50/30 hover:bg-gray-50 transition-all duration-300 ease-in-out transform hover:scale-105 ring-1 ring-indigo-300/20",
-        progressClassName: "bg-indigo-500 h-1 rounded-full",
-      });
+      const data = await response.json();
+
+      // Đóng thông báo "Đang tải" sau khi nhận được phản hồi
+      toast.dismiss(toastId);
+
+      // Hiển thị thông báo gợi ý
+      toast.info(
+        ({ closeToast }) => (
+          <div className="flex items-center space-x-3">
+            <Info size={16} className="text-gray-700 flex-shrink-0" />
+            <p className="font-medium">{data.message}</p>
+          </div>
+        ),
+        {
+          position: "top-right",
+          autoClose: 50000,
+          hideProgressBar: true,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+          className:
+            "fixed top-10 right-10 bg-gradient-to-r from-white to-gray-100 text-gray-800 px-6 py-4 rounded-xl shadow-lg text-base font-sans font-medium transition-all ease-in-out duration-300 transform hover:scale-102 flex justify-center items-center text-center space-x-3 border border-gray-200 hover:bg-gray-50",
+          progressClassName: "bg-gray-400 h-0.5 rounded-full",
+          icon: false,
+        }
+      );
     } catch (err) {
       setError(err.message); // Xử lý lỗi nếu có
+
+      // Đóng thông báo "Đang tải" khi có lỗi
+      toast.dismiss(toastId);
+
+      // Thông báo lỗi
+      toast.error(
+        ({ closeToast }) => (
+          <div className="flex items-center space-x-3">
+            <XCircle size={16} className="text-red-500 flex-shrink-0" />
+            <p className="font-medium">{err.message}</p>
+          </div>
+        ),
+        {
+          position: "top-right",
+          autoClose: 5000,
+          hideProgressBar: true,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+          className:
+            "fixed top-10 right-10 bg-gradient-to-r from-white to-gray-100 text-gray-800 px-6 py-4 rounded-xl shadow-lg text-base font-sans font-medium transition-all ease-in-out duration-300 transform hover:scale-102 flex justify-center items-center text-center space-x-3 border border-gray-200 hover:bg-gray-50",
+          progressClassName: "bg-red-400 h-0.5 rounded-full",
+          icon: false,
+        }
+      );
     } finally {
       setLoading(false);
     }
   };
+
   useEffect(() => {
     const fetchRescueList = async () => {
       try {
@@ -121,30 +182,21 @@ const RescueBot: React.FC = () => {
   };
   const handleSupportRequest = async (personId: string, personName: string) => {
     try {
-      const response = await fetch(
-        "https://byteforce.caohoangphuc.id.vn/python/api/support_request",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ id: personId }),
-        }
-      );
+      const response = await fetch("https://chiquoc26.id.vn/api/grokAI", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ id: personId }),
+      });
 
       if (!response.ok) {
         throw new Error("Gửi hỗ trợ thất bại");
       }
-      const aiResponse: string = `Giờ đây tôi sẽ hỗ trợ bạn các thông tin về người dùng ${personName}`;
+      const aiResponse: string = `Giờ đây tôi sẽ hỗ trợ bạn các thông tin về người dùng ${message}`;
 
-      const aiMessage: ChatMessage = {
-        sender: "AI",
-        text: aiResponse,
-        image: null,
-        timestamp: new Date().toLocaleTimeString(),
-      };
-      setChatHistory((prev) => [...prev, aiMessage]);
       toast.success("Đã gửi hỗ trợ thành công");
+      console;
     } catch (error) {
       console.error("Lỗi khi gửi hỗ trợ:", error);
       toast.error("Không thể gửi hỗ trợ");
@@ -170,7 +222,7 @@ const RescueBot: React.FC = () => {
       if (image) formData.append("image", image);
 
       const response = await fetch(
-        "https://byteforce.caohoangphuc.id.vn/python/api/get_gemini_rsp",
+        "https://byteforce.caohoangphuc.id.vn/python/api/get_grok_rsp",
         {
           method: "POST",
           body: formData,
@@ -210,7 +262,12 @@ const RescueBot: React.FC = () => {
       if (fileInputRef.current) fileInputRef.current.value = "";
     }
   };
+  const [searchQuery, setSearchQuery] = useState(""); // State để lưu giá trị tìm kiếm
 
+  // Hàm lọc danh sách dựa trên tìm kiếm
+  const filteredRescueList = rescueList.filter(
+    (person) => person.name.toLowerCase().includes(searchQuery.toLowerCase()) // Lọc theo tên
+  );
   return (
     <div className="min-h-screen bg-white flex flex-col font-sans">
       <Header />
@@ -385,8 +442,7 @@ const RescueBot: React.FC = () => {
                   variant="outline"
                   className="flex items-center gap-2 border-gray-300 text-black hover:bg-gray-100"
                 >
-                  <HeartPulse className="w-5 h-5 text-red-500" />
-                  Rescue List
+                  Gợi Ý <Lightbulb />
                 </Button>
               </SheetTrigger>
 
@@ -396,21 +452,31 @@ const RescueBot: React.FC = () => {
               >
                 <SheetHeader>
                   <SheetTitle className="text-xl font-bold text-black">
-                    Người cần cứu hộ
+                    <Lightbulb /> Hint
                   </SheetTitle>
                   <SheetDescription className="text-sm text-gray-600">
-                    bạn ấn vào nhún Tư Vấn để nhận hỗ trợ từ AI với thông tin từ
-                    người dùng
+                    Cung cấp gợi ý cho từng trường hợp{" "}
                   </SheetDescription>
                 </SheetHeader>
 
+                {/* Tìm kiếm */}
+                <div className="mb-4">
+                  <input
+                    type="text"
+                    placeholder="Tìm kiếm..."
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                  />
+                </div>
+
                 <div className="mt-6 space-y-4 overflow-y-auto max-h-[75vh] pr-1 custom-scroll">
-                  {rescueList.length === 0 ? (
+                  {filteredRescueList.length === 0 ? (
                     <p className="text-sm text-gray-500 text-center">
                       Không có dữ liệu cứu hộ hiện tại.
                     </p>
                   ) : (
-                    rescueList.map((person) => (
+                    filteredRescueList.map((person) => (
                       <div
                         key={person.id}
                         className={`p-4 rounded-xl shadow-md border ${
@@ -452,7 +518,6 @@ const RescueBot: React.FC = () => {
                           size="sm"
                           className="mt-3 w-full text-black border-gray-300 hover:bg-gray-100 text-xs"
                           onClick={() => {
-                            handleSupportRequest(person.id, person.name);
                             handlePostRequest(person.id);
                           }}
                         >

@@ -40,9 +40,9 @@ const Home = () => {
               className="text-gray-600 mb-10 max-w-2xl animate-fade-in"
               style={{ animationDelay: "0.3s" }}
             >
-              Cung cấp cho các đội cứu hộ công cụ theo dõi vị trí và phối hợp
-              theo thời gian thực để phản ứng nhanh hơn và cứu được nhiều mạng
-              người hơn.
+              Cung cấp cho các đội cứu hộ công cụ thông minh tích hợp theo dõi
+              vị trí và phối hợp theo thời gian thực để phản ứng nhanh hơn và
+              cứu được nhiều mạng người hơn.
             </p>
 
             <div
@@ -87,11 +87,11 @@ const Home = () => {
                   <MapPin className="text-rescue-primary" size={24} />
                 </div>
                 <h3 className="text-xl font-semibold mb-2">
-                  Theo dõi vị trí thời gian thực
+                  Trợ lý thông minh cho đội cứu hộ
                 </h3>
                 <p className="text-gray-600">
-                  Theo dõi vị trí của tất cả các thành viên trong đội cứu hộ và
-                  những người cần hỗ trợ.
+                  Cung cấp nhiều tính năng thông minh hỗ trợ người cứu hộ giúp
+                  tăng tối đa thời gian cứu hộ .
                 </p>
               </div>
 
@@ -109,12 +109,10 @@ const Home = () => {
                     <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
                   </svg>
                 </div>
-                <h3 className="text-xl font-semibold mb-2">
-                  Cảnh báo dựa trên mức độ ưu tiên
-                </h3>
+                <h3 className="text-xl font-semibold mb-2">Thông tin thực </h3>
                 <p className="text-gray-600">
-                  Phân loại và ưu tiên các yêu cầu cứu hộ dựa trên mức độ khẩn
-                  cấp và nghiêm trọng.
+                  Cung cấp thông tin thời gian thực về thời tiết cung cấp thông
+                  tin nhanh nhất về tình trạng vị trí cần cứu hộ cho đội cứu hộ.
                 </p>
               </div>
 
@@ -125,7 +123,7 @@ const Home = () => {
                 <h3 className="text-xl font-semibold mb-2">Giao tiếp nhóm</h3>
                 <p className="text-gray-600">
                   Giao tiếp an toàn với các thành viên trong nhóm thông qua tin
-                  nhắn tích hợp.
+                  nhắn tích hợp.Có thể cung cấp vị trí trực tiếp cho nhau.
                 </p>
               </div>
             </div>
