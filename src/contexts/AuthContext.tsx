@@ -6,6 +6,7 @@ interface User {
   username: string;
   isAuthenticated: boolean;
   id: string;
+  idToken: string;
 }
 
 interface AuthContextType {
@@ -18,6 +19,7 @@ const initialUser: User = {
   username: "",
   isAuthenticated: false,
   id: "",
+  idToken: "",
 };
 
 const AuthContext = createContext<AuthContextType>({
@@ -57,11 +59,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       }
 
       const data = await response.json();
-
       setUser({
         username: data.user.yourName,
         isAuthenticated: true,
         id: data.user.loginName,
+        idToken: data.user.id,
       });
       toast.success("Login successful");
       return true;

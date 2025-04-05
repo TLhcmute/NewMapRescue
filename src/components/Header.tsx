@@ -8,7 +8,7 @@ const Header = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-
+  console.log("Header", user);
   const isActivePath = (path: string) => {
     return location.pathname === path;
   };
@@ -55,7 +55,7 @@ const Header = () => {
               isActivePath("/chat") ? "nav-item-active" : ""
             }`}
           >
-            Chat
+            AI Assistant
           </button>
 
           <button
@@ -64,7 +64,7 @@ const Header = () => {
               isActivePath("/groupChat") ? "nav-item-active" : ""
             }`}
           >
-            Group Chat
+            Chat Team
           </button>
           <button
             onClick={() => navigateTo("/dashboard")}
@@ -72,7 +72,7 @@ const Header = () => {
               isActivePath("/dashboard") ? "nav-item-active" : ""
             }`}
           >
-            Dữ liệu thời tiết
+            Dashboard
           </button>
 
           {user.isAuthenticated && (

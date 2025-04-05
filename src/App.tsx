@@ -11,7 +11,7 @@ import Map from "./pages/Map";
 import Chat from "./pages/Chat";
 import NotFound from "./pages/NotFound";
 import GroupChat from "./pages/GroupChat";
-import DashBoard from "./pages/dashboard";
+import DashBoard from "./pages/DashBoard";
 const queryClient = new QueryClient();
 
 const App = () => (

@@ -1,6 +1,15 @@
 import { useState, useEffect, useRef } from "react";
 import Header from "../components/Header";
-import { Send, MapPin, MessageSquare, Bot, X, HeartPulse } from "lucide-react";
+import {
+  Send,
+  MapPin,
+  MessageSquare,
+  Bot,
+  X,
+  HeartPulse,
+  XCircle,
+  Info,
+} from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { ToastContainer, toast } from "react-toastify";
 import {
@@ -43,39 +52,70 @@ const RescueBot: React.FC = () => {
     setError(null);
 
     try {
-      const response = await fetch(
-        "https://byteforce.caohoangphuc.id.vn/python/api/get_recomment_action_rescuer",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ id: id }), // Dữ liệu gửi đi
-        }
-      );
+      const response = await fetch("https://chiquoc26.id.vn/api/grokAI", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ id: id }), // Dữ liệu gửi đi
+      });
 
       if (!response.ok) {
         throw new Error("Lỗi khi gửi yêu cầu");
       }
 
-      const data = await response.text();
-      toast.info(data, {
-        position: "top-right",
-        autoClose: 50000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: true,
-        draggable: true,
-        className:
-          "bg-white text-gray-800 px-6 py-4 rounded-xl shadow-2xl text-lg font-medium flex items-center space-x-4 border border-gray-200/50 bg-gradient-to-r from-white to-indigo-50/30 hover:bg-gray-50 transition-all duration-300 ease-in-out transform hover:scale-105 ring-1 ring-indigo-300/20",
-        progressClassName: "bg-indigo-500 h-1 rounded-full",
-      });
+      const data = await response.json();
+
+      // Hiển thị thông báo gợi ý mềm mại, hiện đại và tinh tế ở góc phải
+      toast.info(
+        ({ closeToast }) => (
+          <div className="flex items-center space-x-3">
+            <Info size={16} className="text-gray-700 flex-shrink-0" />
+            <p className="font-medium">{data.message}</p>
+          </div>
+        ),
+        {
+          position: "top-right", // Di chuyển thông báo sang góc phải
+          autoClose: 50000, // Thời gian tự động đóng thông báo
+          hideProgressBar: true,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+          className:
+            "fixed top-10 right-10 bg-gradient-to-r from-white to-gray-100 text-gray-800 px-6 py-4 rounded-xl shadow-lg text-base font-sans font-medium transition-all ease-in-out duration-300 transform hover:scale-102 flex justify-center items-center text-center space-x-3 border border-gray-200 hover:bg-gray-50",
+          progressClassName: "bg-gray-400 h-0.5 rounded-full",
+          icon: false,
+        }
+      );
     } catch (err) {
       setError(err.message); // Xử lý lỗi nếu có
+
+      // Thông báo lỗi
+      toast.error(
+        ({ closeToast }) => (
+          <div className="flex items-center space-x-3">
+            <XCircle size={16} className="text-red-500 flex-shrink-0" />
+            <p className="font-medium">{err.message}</p>
+          </div>
+        ),
+        {
+          position: "top-right",
+          autoClose: 5000,
+          hideProgressBar: true,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+          className:
+            "fixed top-10 right-10 bg-gradient-to-r from-white to-gray-100 text-gray-800 px-6 py-4 rounded-xl shadow-lg text-base font-sans font-medium transition-all ease-in-out duration-300 transform hover:scale-102 flex justify-center items-center text-center space-x-3 border border-gray-200 hover:bg-gray-50",
+          progressClassName: "bg-red-400 h-0.5 rounded-full",
+          icon: false,
+        }
+      );
     } finally {
       setLoading(false);
     }
   };
+
   useEffect(() => {
     const fetchRescueList = async () => {
       try {
@@ -121,30 +161,21 @@ const RescueBot: React.FC = () => {
   };
   const handleSupportRequest = async (personId: string, personName: string) => {
     try {
-      const response = await fetch(
-        "https://byteforce.caohoangphuc.id.vn/python/api/get_grok_rsp_client",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ id: personId }),
-        }
-      );
+      const response = await fetch("https://chiquoc26.id.vn/api/grokAI", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ id: personId }),
+      });
 
       if (!response.ok) {
         throw new Error("Gửi hỗ trợ thất bại");
       }
-      const aiResponse: string = `Giờ đây tôi sẽ hỗ trợ bạn các thông tin về người dùng ${personName}`;
+      const aiResponse: string = `Giờ đây tôi sẽ hỗ trợ bạn các thông tin về người dùng ${message}`;
 
-      const aiMessage: ChatMessage = {
-        sender: "AI",
-        text: aiResponse,
-        image: null,
-        timestamp: new Date().toLocaleTimeString(),
-      };
-      setChatHistory((prev) => [...prev, aiMessage]);
       toast.success("Đã gửi hỗ trợ thành công");
+      console;
     } catch (error) {
       console.error("Lỗi khi gửi hỗ trợ:", error);
       toast.error("Không thể gửi hỗ trợ");
@@ -452,7 +483,6 @@ const RescueBot: React.FC = () => {
                           size="sm"
                           className="mt-3 w-full text-black border-gray-300 hover:bg-gray-100 text-xs"
                           onClick={() => {
-                            handleSupportRequest(person.id, person.name);
                             handlePostRequest(person.id);
                           }}
                         >

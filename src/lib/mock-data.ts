@@ -10,7 +10,7 @@ export const mockWeatherData = {
 
   forecast: [
     {
-      date: "00",
+      date: "0",
 
       condition: "partly_cloudy",
       highTemp: 0,
@@ -48,57 +48,33 @@ export const mockWeatherData = {
 
   hourlyData: [
     {
-      time: "2022-08-30 15:00:00",
-      temperature: 25,
-      humidity: 80,
+      time: "0",
+      temperature: 0,
+      humidity: 0,
       precipitation: 0,
     },
     {
-      time: "2022-08-30 15:00:00",
-      temperature: 24,
-      humidity: 82,
+      time: "0",
+      temperature: 0,
+      humidity: 0,
       precipitation: 0,
     },
     {
-      time: "2022-08-30 15:00:00",
-      temperature: 23,
-      humidity: 85,
-      precipitation: 2,
-    },
-    {
-      time: "2022-08-30 15:00:00",
-      temperature: 26,
-      humidity: 75,
+      time: "0",
+      temperature: 0,
+      humidity: 0,
       precipitation: 0,
     },
     {
-      time: "2022-08-30 15:00:00",
-      temperature: 29,
-      humidity: 65,
+      time: "0",
+      temperature: 0,
+      humidity: 0,
       precipitation: 0,
     },
     {
-      time: "2022-08-30 15:00:00",
-      temperature: 31,
-      humidity: 60,
-      precipitation: 0,
-    },
-    {
-      time: "2022-08-30 15:00:00",
-      temperature: 28,
-      humidity: 70,
-      precipitation: 0,
-    },
-    {
-      time: "2022-08-30 15:00:00",
-      temperature: 26,
-      humidity: 75,
-      precipitation: 0,
-    },
-    {
-      time: "2022-08-30 15:00:00",
-      temperature: 26,
-      humidity: 75,
+      time: "0",
+      temperature: 0,
+      humidity: 0,
       precipitation: 0,
     },
   ],

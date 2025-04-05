@@ -24,10 +24,11 @@ import {
 import { toast } from "sonner";
 import AcceptedRescues from "../components/AcceptedRescues";
 import { Progress } from "@/components/ui/progress";
-
+import StatusButton from "@/components/ButtonStatus";
 // Fix for leaflet icons
 import icon from "leaflet/dist/images/marker-icon.png";
 import iconShadow from "leaflet/dist/images/marker-shadow.png";
+import { useAuth } from "../contexts/AuthContext"; // Import useAuth hook
 
 const DefaultIcon = L.icon({
   iconUrl: icon,
@@ -208,6 +209,7 @@ const Map = () => {
   const [currentLocation, setCurrentLocation] = useState<[number, number]>([
     10.7769, 106.7009,
   ]); // Default to Ho Chi Minh City
+
   const [people, setPeople] = useState<Person[]>(mockPeople);
   const [selectedPerson, setSelectedPerson] = useState<Person | null>(null);
   const [showSidebar, setShowSidebar] = useState(true);
@@ -224,7 +226,9 @@ const Map = () => {
   useEffect(() => {
     const fetchPeopleData = async () => {
       try {
-        const response = await fetch("https://chiquoc26.id.vn/api/list");
+        const response = await fetch(
+          "https://byteforce.caohoangphuc.id.vn/python/api/get_all_request"
+        );
         if (!response.ok) {
           throw new Error("Dữ liệu không hợp lệ");
         }
@@ -241,6 +245,7 @@ const Map = () => {
     fetchPeopleData(); // Gọi API khi component mount
   }, []); // Chỉ gọi khi component được mount
   // Ham Lay vi tri truc tiep cua nguoi su dung
+
   useEffect(() => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
@@ -643,9 +648,15 @@ const Map = () => {
             {showSidebar && (
               <div className="h-full flex flex-col">
                 <div className="p-4 border-b">
-                  <h2 className="text-xl font-semibold mb-4">
-                    People Needing Help
-                  </h2>
+                  <div className="flex items-center space-x-4 w-full mb-4">
+                    {" "}
+                    {/* Thêm mb-4 ở đây */}
+                    <h2 className="text-xl font-semibold mb-0 flex-shrink-0">
+                      Trạng Thái Cứu Hộ
+                    </h2>
+                    <StatusButton />
+                  </div>
+
                   <div className="relative">
                     <input
                       type="text"

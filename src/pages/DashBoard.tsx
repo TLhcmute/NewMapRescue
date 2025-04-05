@@ -153,7 +153,9 @@ const Dashboard = () => {
                 unit={temperatureUnit}
               />
             ) : (
-              <div className="text-sm text-gray-500 italic">Chọn vị trí...</div>
+              <div className="text-sm text-gray-500 italic">
+                Chọn vị trí... ⭢{" "}
+              </div>
             )}
             <Forecast forecastData={foreCast} unit={temperatureUnit} />
             <WeatherChart hourlyData={hourlyData} unit={temperatureUnit} />
