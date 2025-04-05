@@ -6,6 +6,7 @@ import { Send } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
 import io from "socket.io-client";
+import { useGeolocated } from "react-geolocated";
 
 const socket = io("https://chiquoc26.id.vn");
 
@@ -26,6 +27,8 @@ const ChatArea = ({ currentUser }) => {
   const [chatMessages, setChatMessages] = useState<MessageType[]>([]);
   const [users, setUsers] = useState<UserType[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [locationLat, setLocationLat] = useState<number | null>(null);
+  const [locationLong, setLocationLong] = useState<number | null>(null);
 
   useEffect(() => {
     const fetchMessages = async () => {
@@ -89,26 +92,6 @@ const ChatArea = ({ currentUser }) => {
     return users.find((user) => user.id === userId) || currentUser;
   };
 
-  // const groupMessagesByDate = useMemo(() => {
-  //   const groups: { date: string; messages: MessageType[] }[] = [];
-
-  //   chatMessages.forEach((message) => {
-  //     if (!message || !message.timestamp) return;
-  //     const messageDate = message.timestamp.toDateString();
-  //     const existingGroup = groups.find((group) => group.date === messageDate);
-
-  //     if (existingGroup) {
-  //       existingGroup.messages.push(message);
-  //     } else {
-  //       groups.push({
-  //         date: messageDate,
-  //         messages: [message],
-  //       });
-  //     }
-  //   });
-
-  //   return groups;
-  // }, [chatMessages]);
   const groupMessagesByDate = useMemo(() => {
     const groups: { date: string; messages: MessageType[] }[] = [];
 
@@ -139,6 +122,51 @@ const ChatArea = ({ currentUser }) => {
 
     return groups;
   }, [chatMessages]);
+
+  // Hàm chuyển tọa độ thành địa chỉ cụ thể
+  const reverseGeocode = async (lat: number, lon: number): Promise<string> => {
+    try {
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=18&addressdetails=1`
+      );
+      const data = await res.json();
+      return data.display_name || `${lat}, ${lon}`;
+    } catch (error) {
+      console.error("Reverse geocoding error:", error);
+      return `${lat}, ${lon}`;
+    }
+  };
+
+  // Hàm xử lý khi bấm nút "Gửi vị trí"
+  const handleSendLocation = () => {
+    if (!navigator.geolocation) {
+      alert("Trình duyệt không hỗ trợ định vị.");
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const lat = position.coords.latitude;
+        const long = position.coords.longitude;
+
+        setLocationLat(lat);
+        setLocationLong(long);
+
+        const address = await reverseGeocode(lat, long);
+        const locationMessage = `📍 Vị trí của tôi: ${address} (Lat: ${lat}, Long: ${long})`;
+        setNewMessage(locationMessage);
+      },
+      (error) => {
+        console.error("Lỗi khi lấy vị trí:", error);
+        alert("Không thể lấy vị trí.");
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0,
+      }
+    );
+  };
 
   return (
     <div className="flex-1 flex flex-col h-full overflow-hidden">
@@ -200,6 +228,7 @@ const ChatArea = ({ currentUser }) => {
               )}
             />
           </Button>
+          <Button onClick={handleSendLocation}>Gửi vị trí</Button>
         </form>
       </div>
     </div>
